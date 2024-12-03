@@ -1,6 +1,7 @@
 import gym
 import numpy as np
 
+from spectrl.hierarchy.path_policies import PathPolicy
 from spectrl.main.monitor import Resource_Model
 from spectrl.rl.ars import NNPolicy, NNParams, ars
 from spectrl.rl.ddpg import DDPG
@@ -227,6 +228,56 @@ class AbstractReachability:
                 exit(1)
 
         return abstract_policy, nn_policies, [total_steps, total_time, num_edges_learned]
+    
+    def learn_all_paths(self, env, hyperparams, algo='ars', res_model=None,
+                              max_steps=100, safety_penalty=-1, neg_inf=-10, alpha=0,
+                              num_samples=300, use_gpu=False, render=False, succ_thresh=0.):
+        '''
+        Learns policies for all paths in the task graph.
+
+        Parameters:
+            env: gym.Env (with additional method, set_state: np.array -> NoneType)
+            init_dist: Distribution (initial state distribution)
+            hyperparams: HyperParams object (corresponding to the RL algo)
+            algo: str (RL algorithm to use to learn policies for edges)
+            res_model: Resource_Model (optional)
+            safety_penalty: float (min penalty for violating constraints)
+            neg_inf: float (large negative constant)
+            num_samples: int (number of samples used to compute reach probabilities)
+
+        Returns:
+            path_policy: PathPolicy
+        '''
+        path_policy = PathPolicy(0, None)
+        stack = [path_policy]
+
+        while stack:
+            pp = stack.pop()
+
+            for edge in self.abstract_graph[pp.vertex]:
+                if edge.target == pp.vertex:
+                    continue
+
+                start_dist = pp.start_dist
+
+                edge_policy, reach_env, log_info = edge.learn_policy(
+                            env, hyperparams, pp.vertex, start_dist, algo, res_model,
+                            max_steps, safety_penalty, neg_inf, alpha, use_gpu, render)
+                
+                final_states = []
+                for _ in range(num_samples):
+                    get_rollout(reach_env, edge_policy, False)
+                    final_states.append(reach_env.get_state())
+                
+                pp_edge = PathPolicy(edge.target, FiniteDistribution(final_states))
+
+                pp.add_edge(edge.target, edge)
+                pp.add_policy(edge.target, edge_policy)
+                pp.add_path_policy(edge.target, pp_edge)
+                pp.add_reach_env(edge.target, reach_env)
+                stack.append(pp_edge)
+
+        return path_policy
 
     def pretty_print(self):
         for i in range(self.num_vertices):
@@ -283,13 +334,17 @@ class ReachabilityEnv(gym.Env):
         # Reset the environment
         self.reset()
 
-    def reset(self):
+    def reset(self, init_state=None):
         self.sys_state = self.wrapped_env.reset()
-        if self.init_dist is not None:
-            sim_state, self.res_state = self.init_dist.sample()
+        if init_state:
+            sim_state, self.res_state = init_state
             self.sys_state = self.wrapped_env.set_sim_state(sim_state)
         else:
-            self.res_state = self.res_model.res_init
+            if self.init_dist is not None:
+                sim_state, self.res_state = self.init_dist.sample()
+                self.sys_state = self.wrapped_env.set_sim_state(sim_state)
+            else:
+                self.res_state = self.res_model.res_init
         self.violated_constraints = 0
         self.prev_safety_reward = self.neg_inf
         self.t = 0

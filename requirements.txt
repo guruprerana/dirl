@@ -1,0 +1,7 @@
+numpy
+gym
+torch
+torchvision
+matplotlib
+opencv-python
+mujoco

@@ -71,7 +71,7 @@ class ObservationWrapper(gym.Env):
         return flat_obs
 
 
-def get_rollout(env, policy, render, max_timesteps=10000, stateful_policy=False):
+def get_rollout(env, policy, render, max_timesteps=10000, stateful_policy=False, init_state=None):
     '''
     Compute a single rollout.
 
@@ -84,7 +84,7 @@ def get_rollout(env, policy, render, max_timesteps=10000, stateful_policy=False)
              ((state, action, reward, next_state) tuples)
     '''
     # Step 1: Initialization
-    state = env.reset()
+    state = env.reset(init_state=init_state)
     if stateful_policy:
         policy.reset()
     done = False
