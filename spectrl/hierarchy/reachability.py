@@ -336,7 +336,7 @@ class ReachabilityEnv(gym.Env):
 
     def reset(self, init_state=None):
         self.sys_state = self.wrapped_env.reset()
-        if init_state:
+        if init_state != None:
             sim_state, self.res_state = init_state
             self.sys_state = self.wrapped_env.set_sim_state(sim_state)
         else:
