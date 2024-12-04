@@ -1,5 +1,6 @@
+from conformal.all_paths_conformal_pred import all_paths_conformal_pred
 from conformal.bucketed_conformal_pred import bucketed_conformal_pred
-from conformal.nonconformity_score_graph import DIRLTimeTakenScoreGraph
+from conformal.nonconformity_score_graph import DIRLCumRewardScoreGraph, DIRLTimeTakenScoreGraph
 from spectrl.hierarchy.construction import adj_list_from_task_graph, automaton_graph_from_spec
 from spectrl.hierarchy.reachability import HierarchicalPolicy, ConstrainedEnv
 from spectrl.main.spec_compiler import ev, seq, choose, alw
@@ -18,7 +19,7 @@ from spectrl.envs.rooms import RoomsEnv
 import os
 
 # num_iters = [50, 100, 200, 300, 400, 500]
-num_iters = [2]
+num_iters = [50]
 
 # Construct Product MDP and learn policy
 if __name__ == "__main__":
@@ -111,6 +112,21 @@ if __name__ == "__main__":
         )
 
         adj_list = adj_list_from_task_graph(abstract_reach.abstract_graph)
+        terminal_vertices = [i for i in range(len(adj_list)) if i in adj_list[i]]
 
         time_taken_score_graph = DIRLTimeTakenScoreGraph(adj_list, path_policies)
-        vbs = bucketed_conformal_pred(time_taken_score_graph, 0.1, 3, 10)
+        vbs = bucketed_conformal_pred(time_taken_score_graph, 0.1, 100, 500)
+        min_path, min_path_scores = all_paths_conformal_pred(time_taken_score_graph, 0.1, 500)
+
+        vb = vbs.buckets[(terminal_vertices[0], 100)]
+        print("Bucketed:")
+        print(vb.path)
+        print(vb.path_buckets)
+        print(vb.path_score_quantiles)
+        print(max(vb.path_score_quantiles))
+
+        print()
+        print("All paths:")
+        print(min_path)
+        print(min_path_scores)
+        print(max(min_path_scores))

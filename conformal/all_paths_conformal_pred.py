@@ -16,6 +16,8 @@ def all_paths_conformal_pred(
 
     while stack:
         path = stack.pop()
+        if len(score_graph.adj_lists[path[-1]]) == 0:
+            continue
         for succ in score_graph.adj_lists[path[-1]]:
             if succ == path[-1]:
                 continue
@@ -25,6 +27,7 @@ def all_paths_conformal_pred(
             next_path = path + (succ,)
             path_samples[next_path] = samples
             path_scores[next_path] = [scores for scores in path_scores[path]] + [scores]
+            stack.append(next_path)
 
         del path_samples[path], path_scores[path]
 
@@ -35,8 +38,8 @@ def all_paths_conformal_pred(
         score_maxes: List[Tuple[float, List[float]]] = list()
         for i in range(n_samples):
             sample_path_scores: List[float] = []
-            for j in range(len(path)):
-                sample_path_scores.append(path_scores[j][i])
+            for j in range(len(path)-1):
+                sample_path_scores.append(path_scores[path][j][i])
             score_maxes.append((max(sample_path_scores), sample_path_scores))
 
         score_maxes = sorted(score_maxes, key=lambda t: t[0])

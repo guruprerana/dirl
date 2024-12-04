@@ -155,3 +155,16 @@ class DIRLTimeTakenScoreGraph(DIRLNonConformityScoreGraph):
         if env.cum_reward(states) <= 0:
             return np.inf
         return len(sarss)
+    
+
+class DIRLCumRewardScoreGraph(DIRLNonConformityScoreGraph):
+    """
+    Non-conformity scores corresponding to cumulative reward achieved.
+    """
+
+    def __init__(self, adj_lists: List[List[int]], path_policies: PathPolicy) -> None:
+        super().__init__(adj_lists, path_policies)
+
+    def compute_score(self, sarss: List, env: ReachabilityEnv) -> float:
+        states = np.array([state for state, _, _, _ in sarss] + [sarss[-1][-1]])
+        return -env.cum_reward(states)

@@ -52,7 +52,9 @@ def bucketed_conformal_pred(
                 vbs.buckets[(v, bucket)] = vb
                 min_quantile = np.inf
                 for pred in score_graph.rev_adj_lists[v]:
-                    for bucket_pred in range(bucket + 1):
+                    bucket_preds = range(bucket+1) if pred != 0 else [0]
+                    # to get to vertex 0, we do not want to use any of the error param
+                    for bucket_pred in bucket_preds:
                         pred_vb = vbs.buckets[(pred, bucket_pred)]
                         path_samples, scores = score_graph.sample_cached(
                             v,
@@ -63,8 +65,6 @@ def bucketed_conformal_pred(
                         scores = sorted(scores)
                         rem_e = (bucket - bucket_pred) * (e / total_buckets)
                         quantile_index = min(n_samples - 1, int(np.ceil((1 - rem_e) * (n_samples + 1))))
-                        # q = min(1, np.ceil((1 - rem_e) * (n_samples + 1)) / n_samples)
-                        # quantile = np.quantile(scores, q)
                         quantile = scores[quantile_index]
                         if quantile <= min_quantile:
                             min_quantile = quantile
