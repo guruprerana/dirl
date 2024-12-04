@@ -16,6 +16,7 @@ class NonConformityScoreGraph:
 
     def __init__(self, adj_lists: List[List[int]]) -> None:
         # adjacency lists of the DAG
+        remove_loops(adj_lists)
         self.adj_lists = adj_lists
         self.rev_adj_lists = reverse_adj_list(self.adj_lists)
         self.dag_layers = dag_layers(self.adj_lists, self.rev_adj_lists)
@@ -49,6 +50,12 @@ class NonConformityScoreGraph:
         sample = self.sample(target_vertex, n_samples, path, path_samples)
         self.sample_cache[cache_string] = sample
         return sample
+    
+
+def remove_loops(adj_list: List[List[int]]) -> None:
+    for i in range(len(adj_list)):
+        if i in adj_list[i]:
+            adj_list[i].remove(i)
 
 
 def reverse_adj_list(adj_list: List[List[int]]) -> List[List[int]]:
@@ -78,10 +85,11 @@ def dag_layers(
         for v2 in adj_list[v1]:
             if v2 == v1:
                 continue
-            if all(pred in explored for pred in rev_adj_list[v2]):
+            if all((pred in explored) for pred in rev_adj_list[v2]):
                 layer.append(v2)
                 heappush(queue, v2)
-        layers.append(layer)
+        if len(layer) > 0:
+            layers.append(layer)
 
     return layers
 
@@ -122,7 +130,8 @@ class DIRLNonConformityScoreGraph(NonConformityScoreGraph):
 
     def get_vertex_path_policy(self, path: List[int]) -> PathPolicy:
         pp = self.path_policies
-        for v in path:
+        for v in path[1:]:
+            # 0-th index is just 0 in every path
             pp = pp.path_policies[v]
         return pp
 

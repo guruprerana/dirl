@@ -40,7 +40,7 @@ def all_paths_conformal_pred(
             score_maxes.append((max(sample_path_scores), sample_path_scores))
 
         score_maxes = sorted(score_maxes, key=lambda t: t[0])
-        quantile_index = int(np.ceil((1 - e) * (n_samples + 1)) / n_samples)
+        quantile_index = min(n_samples - 1, int(np.ceil((1 - e) * (n_samples + 1))))
         max_score, scores = score_maxes[quantile_index]
 
         if max_score <= min_path_quantile:

@@ -36,12 +36,16 @@ class VertexBuckets:
 def bucketed_conformal_pred(
     score_graph: NonConformityScoreGraph, e: float, total_buckets: int, n_samples: int
 ) -> VertexBuckets:
+    """
+    DP implementation of the bucketed conformal prediction algorithm.
+    """
     vbs = VertexBuckets(len(score_graph.adj_lists), e, total_buckets, n_samples)
     for i in range(total_buckets + 1):
         vbs.buckets[(0, i)] = VertexBucket(
             0, i, [0], [], [], [None for _ in range(n_samples)]
         )
-    for layer in score_graph.dag_layers:
+    for layer in score_graph.dag_layers[1:]:
+        # skip first layer which is just [0]
         for v in layer:
             for bucket in range(total_buckets + 1):
                 vb = VertexBucket(v, bucket)
@@ -56,13 +60,12 @@ def bucketed_conformal_pred(
                             pred_vb.path,
                             pred_vb.path_samples,
                         )
-                        q = (
-                            np.ceil(
-                                (1 - (e / (bucket - bucket_pred))) * (n_samples + 1)
-                            )
-                            / n_samples
-                        )
-                        quantile = np.quantile(scores, q)
+                        scores = sorted(scores)
+                        rem_e = (bucket - bucket_pred) * (e / total_buckets)
+                        quantile_index = min(n_samples - 1, int(np.ceil((1 - rem_e) * (n_samples + 1))))
+                        # q = min(1, np.ceil((1 - rem_e) * (n_samples + 1)) / n_samples)
+                        # quantile = np.quantile(scores, q)
+                        quantile = scores[quantile_index]
                         if quantile <= min_quantile:
                             min_quantile = quantile
                             vb.path = [i for i in pred_vb.path] + [v]

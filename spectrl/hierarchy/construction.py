@@ -2,6 +2,7 @@
 Constructing task automaton and abstract reachability graph from spec.
 '''
 from copy import copy
+from typing import List
 from spectrl.main.spec_compiler import Cons, land
 from spectrl.hierarchy.reachability import AbstractEdge, AbstractReachability
 
@@ -160,3 +161,10 @@ def true_pred(sys_state, res_state):
 
 def copy_edge(edge):
     return AbstractEdge(edge.target, edge.predicate, copy(edge.constraints))
+
+def adj_list_from_task_graph(task_graph: List[List[AbstractEdge]]) -> List[List[int]]:
+    """
+    Constructs adjancency list of task graph as simple lists of ints
+    representing vertices
+    """
+    return [[e.target for e in edges] for edges in task_graph]
