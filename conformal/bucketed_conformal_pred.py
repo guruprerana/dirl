@@ -50,7 +50,7 @@ def bucketed_conformal_pred(
                 for pred in score_graph.rev_adj_lists[v]:
                     for bucket_pred in range(bucket + 1):
                         pred_vb = vbs.buckets[(pred, bucket_pred)]
-                        path_samples, scores = score_graph.sample(
+                        path_samples, scores = score_graph.sample_cached(
                             v,
                             n_samples,
                             pred_vb.path,
@@ -73,3 +73,4 @@ def bucketed_conformal_pred(
                                 i for i in pred_vb.path_score_quantiles
                             ] + [quantile]
                             vb.path_samples = path_samples
+    return vbs

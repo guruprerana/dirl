@@ -1,5 +1,5 @@
 from heapq import heappop, heappush
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 import numpy as np
 
 from spectrl.hierarchy.path_policies import PathPolicy
@@ -19,6 +19,7 @@ class NonConformityScoreGraph:
         self.adj_lists = adj_lists
         self.rev_adj_lists = reverse_adj_list(self.adj_lists)
         self.dag_layers = dag_layers(self.adj_lists, self.rev_adj_lists)
+        self.sample_cache: Dict[str, Tuple[list, List[float]]] = dict()
 
     def sample(
         self,
@@ -34,6 +35,20 @@ class NonConformityScoreGraph:
         Also evaluates the non-conformity score on the samples.
         """
         raise NotImplementedError
+    
+    def sample_cached(
+        self,
+        target_vertex: int,
+        n_samples: int,
+        path: List[int],
+        path_samples: list,
+    ) -> Tuple[list, List[float]]:
+        cache_string = str(path) + str(target_vertex)
+        if cache_string in self.sample_cache:
+            return self.sample_cache[cache_string]
+        sample = self.sample(target_vertex, n_samples, path, path_samples)
+        self.sample_cache[cache_string] = sample
+        return sample
 
 
 def reverse_adj_list(adj_list: List[List[int]]) -> List[List[int]]:
