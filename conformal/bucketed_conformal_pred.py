@@ -5,6 +5,14 @@ from conformal.nonconformity_score_graph import NonConformityScoreGraph
 
 
 class VertexBucket:
+    """
+    Object to store the best path to reach a vertex for a specific bucket.
+
+    path: List[int] (the best path as the sequence of vertices)
+    path_buckets: List[int] (the buckets assigned to each of the edges along the path)
+    path_score_quantiles: List[float] (the quantile scores corresponding to the buckets of each edge in path)
+    path_samples: list (score samples at the current vertex and bucket)
+    """
     def __init__(
         self,
         vertex: int,
@@ -23,6 +31,10 @@ class VertexBucket:
 
 
 class VertexBuckets:
+    """
+    The DP table object that stores the vertex bucket objects for each vertex and bucket.
+    The buckets dictionary is constructed by the bucketed_conformal_pred algorithm iteratively.
+    """
     def __init__(
         self, n_vertices: int, e: float, total_buckets: int, n_samples: int
     ) -> None:
@@ -38,6 +50,15 @@ def bucketed_conformal_pred(
 ) -> VertexBuckets:
     """
     DP implementation of the bucketed conformal prediction algorithm.
+
+    Params :
+    score_graph : NonConformityScoreGraph
+    e : float (the error/confidence parameter)
+    total_buckets : int (total number of buckets for dividing the error parameter)
+    n_samples : int (number of samples to draw along each edge to estimate the quantile)
+
+    Returns :
+    vbs : (VertexBuckets)
     """
     vbs = VertexBuckets(len(score_graph.adj_lists), e, total_buckets, n_samples)
     for i in range(total_buckets + 1):
@@ -65,7 +86,7 @@ def bucketed_conformal_pred(
                         scores = sorted(scores)
                         rem_e = (bucket - bucket_pred) * (e / total_buckets)
                         quantile_index = min(n_samples - 1, int(np.ceil((1 - rem_e) * (n_samples + 1))))
-                        quantile = scores[quantile_index]
+                        quantile = scores[quantile_index] # compute quantile
                         if quantile <= min_quantile:
                             min_quantile = quantile
                             vb.path = [i for i in pred_vb.path] + [v]

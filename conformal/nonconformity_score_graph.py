@@ -53,12 +53,18 @@ class NonConformityScoreGraph:
     
 
 def remove_loops(adj_list: List[List[int]]) -> None:
+    """
+    Removes self loops on vertices from the adjacency lists
+    """
     for i in range(len(adj_list)):
         if i in adj_list[i]:
             adj_list[i].remove(i)
 
 
 def reverse_adj_list(adj_list: List[List[int]]) -> List[List[int]]:
+    """
+    Compute adjancency list of graph with reversed edges
+    """
     reversed = [[] for _ in range(len(adj_list))]
     for i in range(len(adj_list)):
         for j in adj_list[i]:
@@ -129,6 +135,10 @@ class DIRLNonConformityScoreGraph(NonConformityScoreGraph):
         return path_samples, scores
 
     def get_vertex_path_policy(self, path: List[int]) -> PathPolicy:
+        """
+        Traverse path in the PathPolicy object and return the PathPolicy
+        object at the last vertex of the path.
+        """
         pp = self.path_policies
         for v in path[1:]:
             # 0-th index is just 0 in every path

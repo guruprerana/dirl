@@ -233,7 +233,7 @@ class AbstractReachability:
                               max_steps=100, safety_penalty=-1, neg_inf=-10, alpha=0,
                               num_samples=300, use_gpu=False, render=False, succ_thresh=0.):
         '''
-        Learns policies for all paths in the task graph.
+        Learns policies for all paths in the task graph as a PathPolicy instance.
 
         Parameters:
             env: gym.Env (with additional method, set_state: np.array -> NoneType)
