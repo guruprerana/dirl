@@ -115,7 +115,7 @@ class DIRLNonConformityScoreGraph(NonConformityScoreGraph):
         n_samples: int,
         path: List[int],
         path_samples: list,
-    ) -> Tuple[list | List[float]]:
+    ) -> Tuple[list]:
         assert target_vertex in self.adj_lists[path[-1]]
         assert len(path_samples) == n_samples
 

@@ -1,8 +1,8 @@
 numpy
-gym
+gym==0.21.0
 torch
 torchvision
 matplotlib
 opencv-python
-mujoco
 ipykernel
+mujoco-py==2.0.2.8

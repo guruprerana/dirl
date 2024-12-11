@@ -13,6 +13,7 @@ class VertexBucket:
     path_score_quantiles: List[float] (the quantile scores corresponding to the buckets of each edge in path)
     path_samples: list (score samples at the current vertex and bucket)
     """
+
     def __init__(
         self,
         vertex: int,
@@ -35,6 +36,7 @@ class VertexBuckets:
     The DP table object that stores the vertex bucket objects for each vertex and bucket.
     The buckets dictionary is constructed by the bucketed_conformal_pred algorithm iteratively.
     """
+
     def __init__(
         self, n_vertices: int, e: float, total_buckets: int, n_samples: int
     ) -> None:
@@ -73,7 +75,7 @@ def bucketed_conformal_pred(
                 vbs.buckets[(v, bucket)] = vb
                 min_quantile = np.inf
                 for pred in score_graph.rev_adj_lists[v]:
-                    bucket_preds = range(bucket+1) if pred != 0 else [0]
+                    bucket_preds = range(bucket + 1) if pred != 0 else [0]
                     # to get to vertex 0, we do not want to use any of the error param
                     for bucket_pred in bucket_preds:
                         pred_vb = vbs.buckets[(pred, bucket_pred)]
@@ -85,10 +87,17 @@ def bucketed_conformal_pred(
                         )
                         scores = sorted(scores)
                         rem_e = (bucket - bucket_pred) * (e / total_buckets)
-                        quantile_index = min(n_samples - 1, int(np.ceil((1 - rem_e) * (n_samples + 1))))
-                        quantile = scores[quantile_index] # compute quantile
-                        if quantile <= min_quantile:
-                            min_quantile = quantile
+                        quantile_index = min(
+                            n_samples - 1, int(np.ceil((1 - rem_e) * (n_samples + 1)))
+                        )
+                        quantile = scores[quantile_index]  # compute quantile
+                        pred_vb_max_quantile = (
+                            max(max(pred_vb.path_score_quantiles), quantile)
+                            if len(pred_vb.path_score_quantiles) != 0
+                            else quantile
+                        )
+                        if pred_vb_max_quantile <= min_quantile:
+                            min_quantile = pred_vb_max_quantile
                             vb.path = [i for i in pred_vb.path] + [v]
                             vb.path_buckets = [i for i in pred_vb.path_buckets] + [
                                 bucket - bucket_pred
