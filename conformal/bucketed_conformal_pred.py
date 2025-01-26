@@ -87,9 +87,13 @@ def bucketed_conformal_pred(
                         )
                         scores = sorted(scores)
                         rem_e = (bucket - bucket_pred) * (e / total_buckets)
-                        quantile_index = min(
-                            n_samples - 1, int(np.ceil((1 - rem_e) * (n_samples + 1)))
-                        )
+                        quantile_index = int(np.ceil((1 - rem_e) * (n_samples + 1))) - 1 # -1 to account for 0 index
+                        # then make sure quantile_index is a valid index
+                        if quantile_index < 0:
+                            quantile_index = 0
+                        elif quantile_index >= n_samples:
+                            quantile_index = n_samples - 1
+
                         quantile = scores[quantile_index]  # compute quantile
                         pred_vb_max_quantile = (
                             max(max(pred_vb.path_score_quantiles), quantile)
