@@ -1,8 +1,10 @@
-num_iters = 2
+num_iters = 4000
 spec_num = 5
-use_gpu = False
+use_gpu = True
 
-import os
+# Load environment variables from .env file
+from dotenv import load_dotenv
+load_dotenv()
 
 from conformal.all_paths_conformal_pred import all_paths_conformal_pred
 from conformal.bucketed_conformal_pred import bucketed_conformal_pred
@@ -25,6 +27,8 @@ from spectrl.examples.rooms_envs import (
     FINAL_ROOM,
 )
 from spectrl.envs.rooms import RoomsEnv
+
+import os
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2'
 
@@ -131,11 +135,21 @@ path_policies = abstract_reach.learn_all_paths(
     num_samples=1000,
     algo="ddpg",
     alpha=0,
-    use_gpu=use_gpu
 )
 
 adj_list = adj_list_from_task_graph(abstract_reach.abstract_graph)
 terminal_vertices = [i for i in range(len(adj_list)) if i in adj_list[i]]
+
+import dill as pickle
+
+with open("conformal_experiments_data/fetch-policies/path_policies.pkl", "wb") as f:
+    pickle.dump(path_policies, f)
+
+with open("conformal_experiments_data/fetch-policies/adj_list.pkl", "wb") as f:
+    pickle.dump(adj_list, f)
+
+with open("conformal_experiments_data/fetch-policies/terminal_vertices.pkl", "wb") as f:
+    pickle.dump(terminal_vertices, f)
 
 time_taken_score_graph = DIRLTimeTakenScoreGraph(adj_list, path_policies)
 n_samples = 2000

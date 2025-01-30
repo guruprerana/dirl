@@ -42,3 +42,9 @@ python -m spectrl.examples.fpp_dirl -n {run_number} -d {directory} -s {spec_numb
 Here `{spec_number}` is either 3 (PickAndPlace), 4 (PickAndPlaceStatic) or 5 (PickAndPlaceChoice). Use the option `-g` to run on GPU if available.
 
 Replace `_dirl` in the above commands with (i) `_spectrl` to run spectrl baseline or (ii) `_tltl` to run tltl baseline.
+
+# Additional setup instruction
+
+- Install mujoco200 from https://roboti.us/download/mujoco200_linux.zip and unzip inside `$HOME/.mujoco/mujoco200` (ensure to remove _linux from name)
+- Set env variable `LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/.mujoco/mujoco200/bin`
+- Place the file `mjkey.txt` from https://www.roboti.us/file/mjkey.txt in `$HOME/.mujoco folder`
