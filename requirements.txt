@@ -8,3 +8,4 @@ ipykernel
 mujoco-py==2.0.2.8
 cython<3
 dill
+python-dotenv

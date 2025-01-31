@@ -21,6 +21,7 @@ class NonConformityScoreGraph:
         self.rev_adj_lists = reverse_adj_list(self.adj_lists)
         self.dag_layers = dag_layers(self.adj_lists, self.rev_adj_lists)
         self.sample_cache: Dict[str, Tuple[list, List[float]]] = dict()
+        self.samples_full_path_cache: Dict[str, List[List[float]]] = dict()
 
     def sample(
         self,
@@ -49,6 +50,37 @@ class NonConformityScoreGraph:
             return self.sample_cache[cache_string]
         sample = self.sample(target_vertex, n_samples, path, path_samples)
         self.sample_cache[cache_string] = sample
+        return sample
+    
+    def sample_full_path(
+        self,
+        path: List[int],
+        n_samples: int,
+    ) -> List[List[float]]:
+        """
+        Samples n_samples trajectories of non-conformity scores along specified path
+        """
+        trajectories_scores = [[] for _ in range(n_samples)]
+        prev_samples = [None for _ in range(n_samples)]
+
+        for i in range(1, len(path)):
+            # starting from 1 because we sample on edges of the path
+            prev_samples, scores = self.sample(path[i], n_samples, path[:i], prev_samples)
+            for j in range(n_samples):
+                trajectories_scores[j].append(scores[j])
+
+        return trajectories_scores
+    
+    def sample_full_path_cached(
+        self,
+        path: List[int],
+        n_samples: int,
+    ) -> List[List[float]]:
+        cache_string = str(path) + str(n_samples)
+        if cache_string in self.samples_full_path_cache:
+            return self.samples_full_path_cache[cache_string]
+        sample = self.sample_full_path(path, n_samples)
+        self.samples_full_path_cache[cache_string] = sample
         return sample
     
 
