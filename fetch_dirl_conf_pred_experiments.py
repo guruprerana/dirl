@@ -181,7 +181,7 @@ import json
 json_data = json.dumps(data_time_taken, indent=2)
 
 # Store the JSON string in a file
-with open("conformal_experiments_data/16rooms-spec13-time-taken.json", "w") as json_file:
+with open("conformal_experiments_data/fetch-spec6-time-taken.json", "w") as json_file:
     json_file.write(json_data)
 
 cum_reward_score_graph = DIRLCumRewardScoreGraph(adj_list, path_policies)
@@ -212,5 +212,5 @@ for e in es:
 json_data = json.dumps(data_time_taken, indent=2)
 
 # Store the JSON string in a file
-with open("conformal_experiments_data/16rooms-spec13-cum-reward.json", "w") as json_file:
+with open("conformal_experiments_data/fetch-spec6-cum-reward.json", "w") as json_file:
     json_file.write(json_data)
