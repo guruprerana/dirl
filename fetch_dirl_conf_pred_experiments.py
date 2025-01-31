@@ -135,6 +135,7 @@ path_policies = abstract_reach.learn_all_paths(
     num_samples=1000,
     algo="ddpg",
     alpha=0,
+    use_gpu=use_gpu,
 )
 
 adj_list = adj_list_from_task_graph(abstract_reach.abstract_graph)
