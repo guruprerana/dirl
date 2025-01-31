@@ -28,10 +28,6 @@ from spectrl.examples.rooms_envs import (
 )
 from spectrl.envs.rooms import RoomsEnv
 
-import os
-
-os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2'
-
 render = False
 folder = ''
 itno = -1
