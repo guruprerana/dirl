@@ -10,7 +10,8 @@ from spectrl.envs.rooms import RoomsEnv
 
 import os
 
-num_iters = [100, 200, 400, 800, 1000, 1200]
+# num_iters = [100, 200, 400, 800, 1000, 1200]
+num_iters = [1200]
 
 # Construct Product MDP and learn policy
 if __name__ == '__main__':

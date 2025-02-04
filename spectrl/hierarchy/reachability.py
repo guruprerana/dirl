@@ -211,6 +211,8 @@ class AbstractReachability:
                         abstract_policy[parent[u]] = u
                         u = parent[u]
 
+        print("abstract policy ", abstract_policy)
+
         # Change abstract policy to refer to edge number rather than vertex number
         for v in range(self.num_vertices):
             if abstract_policy[v] != -1:
