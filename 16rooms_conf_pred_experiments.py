@@ -1,27 +1,11 @@
-num_iters = 1000
-env_num = 3
 spec_num = 13
 
 from conformal.all_paths_conformal_pred import all_paths_conformal_pred
 from conformal.bucketed_conformal_pred import bucketed_conformal_pred
 from conformal.calculate_coverage import calculate_coverage
-from conformal.nonconformity_score_graph import DIRLCumRewardScoreGraph, DIRLTimeTakenScoreGraph
-from spectrl.hierarchy.construction import adj_list_from_task_graph, automaton_graph_from_spec
-from spectrl.hierarchy.reachability import HierarchicalPolicy, ConstrainedEnv
-from spectrl.main.spec_compiler import ev, seq, choose, alw
-from spectrl.util.io import parse_command_line_options, save_log_info, save_object
-from spectrl.util.rl import print_performance, get_rollout
-from spectrl.rl.ars import HyperParams
+from conformal.nonconformity_score_graph import DIRLCumRewardScoreGraph
 
-from spectrl.examples.rooms_envs import (
-    GRID_PARAMS_LIST,
-    MAX_TIMESTEPS,
-    START_ROOM,
-    FINAL_ROOM,
-)
-from spectrl.envs.rooms import RoomsEnv
 
-import os
 import json
 
 import dill as pickle

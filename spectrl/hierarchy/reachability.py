@@ -285,7 +285,11 @@ class AbstractReachability:
         for i in range(self.num_vertices):
             targets = ''
             for edge in self.abstract_graph[i]:
-                targets += ' ' + str(edge.target)
+                try:
+                    desc = edge.predicate.description
+                except:
+                    desc = ''
+                targets += f" ({desc}, {edge.target})"
             print(str(i) + ' ->' + targets)
 
 

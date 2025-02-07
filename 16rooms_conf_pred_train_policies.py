@@ -1,5 +1,5 @@
-num_iters = 1000
-env_num = 3
+num_iters = 1200
+env_num = 4
 spec_num = 13
 
 from conformal.all_paths_conformal_pred import all_paths_conformal_pred

@@ -83,6 +83,8 @@ class GridParams:
 
         def predicate(sys_state, res_state):
             return min(np.concatenate([sys_state[:2] - low, high - sys_state[:2]]))
+        
+        predicate.description = f"in_room({room})"
 
         return predicate
 
@@ -95,6 +97,8 @@ class GridParams:
 
         def predicate(sys_state, res_state):
             return 10*max(np.concatenate(low - [sys_state[:2], sys_state[:2] - high]))
+        
+        predicate.description = f"avoid_center({room})"
 
         return predicate
 

@@ -478,6 +478,13 @@ def lor(p1, p2):
     '''
     def p(sys_state, res_state):
         return max(p1(sys_state, res_state), p2(sys_state, res_state))
+    
+    #### Adding description to predicates for debugging/printing
+    try:
+        p.description = f"lor({p1.description, p2.description})"
+    except:
+        pass
+    ####
     return p
 
 
@@ -488,6 +495,13 @@ def land(p1, p2):
     '''
     def p(sys_state, res_state):
         return min(p1(sys_state, res_state), p2(sys_state, res_state))
+    
+    #### Adding description to predicates for debugging/printing
+    try:
+        p.description = f"land({p1.description, p2.description})"
+    except:
+        pass
+    ####
     return p
 
 
