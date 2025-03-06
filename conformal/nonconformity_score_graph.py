@@ -151,7 +151,7 @@ class DIRLNonConformityScoreGraph(NonConformityScoreGraph):
         assert target_vertex in self.adj_lists[path[-1]]
         assert len(path_samples) == n_samples
 
-        pp = self.get_vertex_path_policy(path)
+        pp = self.path_policies.get_vertex_path_policy(path)
         scores: List[float] = []
         next_path_samples = []
         for init_state in path_samples:
@@ -165,17 +165,6 @@ class DIRLNonConformityScoreGraph(NonConformityScoreGraph):
             next_path_samples.append(pp.reach_envs[target_vertex].get_state())
 
         return path_samples, scores
-
-    def get_vertex_path_policy(self, path: List[int]) -> PathPolicy:
-        """
-        Traverse path in the PathPolicy object and return the PathPolicy
-        object at the last vertex of the path.
-        """
-        pp = self.path_policies
-        for v in path[1:]:
-            # 0-th index is just 0 in every path
-            pp = pp.path_policies[v]
-        return pp
 
     def compute_score(self, sarss: list, env: ReachabilityEnv) -> float:
         """
