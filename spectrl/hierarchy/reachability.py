@@ -454,7 +454,10 @@ class ReachabilityEnv(gym.Env):
 
         # dont want reach reward to be greater than 0
         reach_reward = min(reach_reward, 0)
-        return min(reach_reward, safety_reward)
+        if reach_reward < 0:
+            # we first care about reaching
+            return min(reach_reward, safety_reward)
+        return safety_reward
 
     def close_viewer(self):
         self.wrapped_env.close()
