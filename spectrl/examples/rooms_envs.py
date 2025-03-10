@@ -86,3 +86,15 @@ GRID_PARAMS_LIST.append(GridParams(size5, edges5, room_size1, wall_size1,
 MAX_TIMESTEPS.append(180)
 START_ROOM.append((0, 0))
 FINAL_ROOM.append((3, 3))
+
+# parameters for a 3-by-3 grid
+edges3 = [((0, 0), (0, 1)), ((0, 0), (1, 0)), ((0, 1), (0, 2)),
+          ((1, 0), (1, 1)), ((1, 0), (2, 0)), ((1, 1), (1, 2)),
+          ((2, 0), (2, 1)), ((2, 1), (2, 2)), ((2, 2), (1, 2)),
+          ((0, 2), (1, 2))]
+
+GRID_PARAMS_LIST.append(GridParams(size1, edges3, room_size1, wall_size1,
+                                   vertical_door1, horizontal_door1))
+MAX_TIMESTEPS.append(150)
+START_ROOM.append((0, 0))
+FINAL_ROOM.append((2, 2))

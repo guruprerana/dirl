@@ -1,0 +1,48 @@
+{
+  "metadata": {
+    "es": [
+      0.1
+    ],
+    "total_buckets": [
+      100
+    ],
+    "scores": "cum-reward",
+    "env": "9-rooms",
+    "spec": 0,
+    "n_samples": 1000
+  },
+  "0.1": {
+    "100": {
+      "bucketed": {
+        "path": [
+          0,
+          2,
+          3
+        ],
+        "path_buckets": [
+          97,
+          3
+        ],
+        "path_score_quantiles": [
+          0,
+          0
+        ],
+        "max_path_score_quantile": 0
+      },
+      "all-paths": {
+        "path": [
+          0,
+          1,
+          3
+        ],
+        "min_path_scores": [
+          0,
+          0
+        ],
+        "max_min_path_scores": 0
+      },
+      "bucketed-coverage": 0.996,
+      "all-paths-coverage": 0.975
+    }
+  }
+}

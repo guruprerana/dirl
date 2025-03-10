@@ -193,9 +193,14 @@ class DIRLCumRewardScoreGraph(DIRLNonConformityScoreGraph):
     Non-conformity scores corresponding to cumulative reward achieved.
     """
 
-    def __init__(self, adj_lists: List[List[int]], path_policies: PathPolicy) -> None:
+    def __init__(self, adj_lists: List[List[int]], path_policies: PathPolicy, cum_reward_type="normal") -> None:
         super().__init__(adj_lists, path_policies)
+        self.cum_reward_type = cum_reward_type
 
     def compute_score(self, sarss: List, env: ReachabilityEnv) -> float:
         states = np.array([state for state, _, _, _ in sarss] + [sarss[-1][-1]])
+        if self.cum_reward_type == "cum_safety_reward":
+            return -env.cum_safety_reward(states)
+        elif self.cum_reward_type == "cum_safety_reach_reward":
+            return -env.cum_safety_reach_reward(states)
         return -env.cum_reward(states)

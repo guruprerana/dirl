@@ -424,6 +424,37 @@ class ReachabilityEnv(gym.Env):
         if self.final_pred is None:
             reach_reward = -self.neg_inf
         return min(reach_reward, safety_reward)
+    
+    def cum_safety_reward(self, states):
+        safety_reward = -self.neg_inf
+        for s in states:
+            sys_state = s[:self.orig_state_dim]
+            res_state = s[self.orig_state_dim:]
+
+            for i in range(len(self.constraints)):
+                cur_safety_reward = self.constraints[i](sys_state, res_state)
+                safety_reward = min(safety_reward, cur_safety_reward)
+
+        return safety_reward
+    
+    def cum_safety_reach_reward(self, states):
+        reach_reward = self.neg_inf
+        safety_reward = -self.neg_inf
+        for s in states:
+            sys_state = s[:self.orig_state_dim]
+            res_state = s[self.orig_state_dim:]
+            if self.final_pred is not None:
+                reach_reward = max(reach_reward, self.final_pred(sys_state, res_state))
+
+            for i in range(len(self.constraints)):
+                cur_safety_reward = self.constraints[i](sys_state, res_state)
+                safety_reward = min(safety_reward, cur_safety_reward)
+        if self.final_pred is None:
+            reach_reward = -self.neg_inf
+
+        # dont want reach reward to be greater than 0
+        reach_reward = min(reach_reward, 0)
+        return min(reach_reward, safety_reward)
 
     def close_viewer(self):
         self.wrapped_env.close()
