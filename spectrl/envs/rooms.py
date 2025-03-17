@@ -88,6 +88,19 @@ class GridParams:
 
         return predicate
 
+    def in_room_without_scaling(self, room):
+        center = self.partition_size * np.array(room) + (self.room_size / 2)
+        half_size = self.wall_size / 2
+        low = center - half_size
+        high = center + half_size
+
+        def predicate(sys_state, res_state):
+            return -np.max(np.abs(sys_state[:2] - center) - half_size)
+        
+        predicate.description = f"in_room({room})"
+
+        return predicate
+
     # get predicate to avoid the center of a room
     def avoid_center(self, room, obstacle_size_factor=2):
         center = self.partition_size * np.array(room) + (self.room_size / 2)
@@ -109,7 +122,8 @@ class GridParams:
         high = center + half_size
 
         def predicate(sys_state, res_state):
-            return max(np.concatenate(low - [sys_state[:2], sys_state[:2] - high]))
+            return np.max(np.abs(sys_state[:2] - center) - half_size)
+            # return max(np.concatenate(low - [sys_state[:2], sys_state[:2] - high]))
         
         predicate.description = f"avoid_center({room})"
 
