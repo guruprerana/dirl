@@ -88,9 +88,9 @@ class GridParams:
 
         return predicate
 
-    def in_room_without_scaling(self, room):
+    def in_room_without_scaling(self, room, target_size_factor=2.0):
         center = self.partition_size * np.array(room) + (self.room_size / 2)
-        half_size = self.wall_size / 2
+        half_size = self.wall_size / target_size_factor
         low = center - half_size
         high = center + half_size
 
@@ -115,7 +115,7 @@ class GridParams:
 
         return predicate
     
-    def avoid_center_without_scaling(self, room, obstacle_size_factor=2):
+    def avoid_center_without_scaling(self, room, obstacle_size_factor=2.0):
         center = self.partition_size * np.array(room) + (self.room_size / 2)
         half_size = self.wall_size / obstacle_size_factor
         low = center - half_size
@@ -143,7 +143,8 @@ class RoomsEnv(gym.Env):
         self.max_timesteps = max_timesteps
 
         max_vel = np.amin(self.grid_params.wall_size) / 2
-        self.action_scale = np.array([max_vel, np.pi/2])
+        # self.action_scale = np.array([max_vel, np.pi/2])
+        self.action_scale = np.array([max_vel, max_vel])
 
         # set the initial state
         self.reset()
@@ -155,8 +156,8 @@ class RoomsEnv(gym.Env):
 
     def step(self, action):
         action = self.action_scale * action
-        action = np.array([action[0] * math.cos(action[1]),
-                           action[0] * math.sin(action[1])])
+        # action = np.array([action[0] * math.cos(action[1]),
+        #                    action[0] * math.sin(action[1])])
         next_state = self.state + action
         if self.path_clear(self.state, next_state):
             self.state = next_state

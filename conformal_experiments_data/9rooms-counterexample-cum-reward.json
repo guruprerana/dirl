@@ -16,7 +16,7 @@
       "bucketed": {
         "path": [
           0,
-          1,
+          2,
           3
         ],
         "path_buckets": [
@@ -24,25 +24,25 @@
           0
         ],
         "path_score_quantiles": [
-          -0.10575395409568239,
-          -8.736174460322045
+          -0.3320389868243198,
+          -8.738183972030173
         ],
-        "max_path_score_quantile": -0.10575395409568239
+        "max_path_score_quantile": -0.3320389868243198
       },
       "all-paths": {
         "path": [
           0,
-          1,
+          2,
           3
         ],
         "min_path_scores": [
-          -0.10825432708833821,
-          -9.45729496243795
+          -0.33089806226904356,
+          -9.615988739697398
         ],
-        "max_min_path_scores": -0.10825432708833821
+        "max_min_path_scores": -0.33089806226904356
       },
-      "bucketed-coverage": 0.902,
-      "all-paths-coverage": 0.893
+      "bucketed-coverage": 0.88,
+      "all-paths-coverage": 0.905
     }
   }
 }
