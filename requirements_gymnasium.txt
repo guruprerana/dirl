@@ -1,0 +1,12 @@
+numpy
+torch
+torchvision
+matplotlib
+opencv-python
+ipykernel
+cython<3
+dill
+python-dotenv
+gymnasium
+miniworld
+pyglet
