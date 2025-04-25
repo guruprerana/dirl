@@ -48,3 +48,5 @@ Replace `_dirl` in the above commands with (i) `_spectrl` to run spectrl baselin
 - Install mujoco200 from https://roboti.us/download/mujoco200_linux.zip and unzip inside `$HOME/.mujoco/mujoco200` (ensure to remove _linux from name)
 - Set env variable `LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/.mujoco/mujoco200/bin`
 - Place the file `mjkey.txt` from https://www.roboti.us/file/mjkey.txt in `$HOME/.mujoco folder`
+
+`xvfb-run -a -s "-screen 0 1024x768x24 -ac +extension GLX +render -noreset"`

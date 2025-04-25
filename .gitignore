@@ -132,3 +132,5 @@ dmypy.json
 test*
 
 .mujoco
+policy_recordings
+wandb
