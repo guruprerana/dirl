@@ -134,3 +134,6 @@ test*
 .mujoco
 policy_recordings
 wandb
+models
+runs
+logs
