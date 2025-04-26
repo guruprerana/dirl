@@ -1,14 +1,118 @@
 from typing import Any, Callable, Dict, List, Tuple
+import gymnasium as gym
+from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.vec_env import DummyVecEnv
+from stable_baselines3.common.callbacks import EvalCallback
+from stable_baselines3 import DQN
+import wandb
+from wandb.integration.sb3 import WandbCallback
+
 from conformal.nonconformity_score_graph import NonConformityScoreGraph
+from conformal.video_recorder_callback import VideoRecorderCallback
 
 
 class RLTaskGraph(NonConformityScoreGraph):
-    def __init__(self, spec_graph: List[List[Tuple[int, str]]], env_fn: Callable):
+    def __init__(
+            self, 
+            spec_graph: List[Dict[int, str]], 
+            env_name: str,
+        ):
         self.spec_graph = spec_graph
-        adj_lists = [[v for (v, _) in edges] for edges in spec_graph]
+        adj_lists = [[v for v in edges.keys()] for edges in spec_graph]
         super().__init__(adj_lists)
 
-        self.env_fn = env_fn
+        self.env_name = env_name
         self.path_policies: Dict[Tuple[int], Any] = dict()
         self.init_states: Dict[Tuple[int], List[Any]] = dict()
+        self.init_states[(0,)] = None
+    
+    def train_all_edges(self, wandb_project_name: str, n_samples: int):
+        pass
 
+    def _train_edge(
+            self, 
+            path: List[int], 
+            wandb_project_name: str, 
+            n_samples: int
+        ):
+        edge = (path[-2], path[-1])
+        task_str = self.spec_graph[edge[0]][edge[1]]
+
+        edge_task_name = f"edge{edge[0]}-{edge[1]}-{task_str}"
+        wandb.init(
+            project=wandb_project_name,
+            monitor_gym=True,
+            name=edge_task_name,
+            sync_tensorboard=True,
+        )
+
+        edge_init_states = self.init_states[tuple(path[:-1])]
+        def make_env():
+            env = gym.make(
+                self.env_name, 
+                render_mode="rgb_array", 
+                task_str=task_str,
+                init_states=edge_init_states,
+            )
+            env = Monitor(env)
+            return env
+        
+        def make_eval_env():
+            env = gym.make(
+                self.env_name, 
+                render_mode="rgb_array", 
+                task_str=task_str,
+                init_states=edge_init_states,
+            )
+            return env
+        
+        env = DummyVecEnv([make_env])
+
+        eval_callback = EvalCallback(
+            env, 
+            best_model_save_path=f"./logs/{wandb_project_name}/{edge_task_name}/best_models",
+            log_path=f"./logs/{wandb_project_name}/{edge_task_name}/logs", 
+            eval_freq=10000,                 
+            deterministic=True, 
+            render=False,
+        )
+        wandb_callback = WandbCallback(verbose=2)
+        video_callback = VideoRecorderCallback(
+            env_fn=make_eval_env,
+            video_folder=f"./logs/{wandb_project_name}/{edge_task_name}/policy_recordings",
+            video_freq=10000,
+            verbose=1,
+        )
+
+        model = DQN(
+            "CnnPolicy", 
+            env, 
+            verbose=1, 
+            tensorboard_log=f"./logs/{wandb_project_name}/{edge_task_name}/tensorboard",
+        )
+        model.learn(
+            total_timesteps=100000,
+            callback=[eval_callback, wandb_callback, video_callback],
+        )
+
+        env.close()
+        self.path_policies[tuple(path)] = model
+
+        # do n_samples rollouts to obtain starting state distribution for next vertex
+        env = make_eval_env()
+        next_init_states = []
+        for episode in range(n_samples):
+            obs, info = env.reset()
+            env_state = info["env_state"]
+            done = False
+
+            while not done:
+                action, _states = model.predict(obs, deterministic=True)
+                obs, reward, terminated, truncated, info = env.step(action)
+                env_state = info["env_state"]
+                done = terminated or truncated
+
+            next_init_states.append(env_state)
+
+        self.init_states[tuple(path)] = next_init_states
+            
