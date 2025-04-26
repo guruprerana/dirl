@@ -1,5 +1,6 @@
 from typing import Any, Callable, Dict, List, Tuple
 import gymnasium as gym
+from gymnasium.wrappers import RecordVideo
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.callbacks import EvalCallback
@@ -26,21 +27,32 @@ class RLTaskGraph(NonConformityScoreGraph):
         self.init_states: Dict[Tuple[int], List[Any]] = dict()
         self.init_states[(0,)] = None
     
-    def train_all_paths(self, wandb_project_name: str, n_samples: int):
+    def train_all_paths(
+            self, 
+            wandb_project_name: str, 
+            n_samples: int, 
+            final_policy_recordings: int=3
+        ):
         stack = [(0,)]
 
         while stack:
             path = stack.pop()
             for target_v in self.adj_lists[path[-1]]:
                 target_path = path + (target_v,)
-                self._train_edge(target_path, wandb_project_name, n_samples)
+                self._train_edge(
+                    target_path, 
+                    wandb_project_name, 
+                    n_samples,
+                    final_policy_recordings
+                )
                 stack.append(target_path)
 
     def _train_edge(
             self, 
             path: List[int], 
             wandb_project_name: str, 
-            n_samples: int
+            n_samples: int,
+            final_policy_recordings: int=3
         ):
         edge = (path[-2], path[-1])
         task_str = self.spec_graph[edge[0]][edge[1]]
@@ -124,6 +136,60 @@ class RLTaskGraph(NonConformityScoreGraph):
 
         self.init_states[tuple(path)] = next_init_states
 
+        #### record final_policy_recordings
+        videos_folder = f"./logs/{wandb_project_name}/{edge_task_name}/final_policy_recordings"
+        env = RecordVideo(env, video_folder=videos_folder, episode_trigger=lambda _: True)
+
+        for _ in range(final_policy_recordings):
+            obs, info = env.reset()
+            done = False
+            total_reward = 0
+
+            while not done:
+                action, info = model.predict(obs, deterministic=True)
+                obs, reward, terminated, truncated, info = env.step(action)
+                total_reward += reward
+                done = terminated or truncated
+
+            wandb.log({"eval/final_policy_recordings_cumrew": total_reward})
+
+        try:
+            if hasattr(env, 'env'):
+                env.env.close()
+            else:
+                env.close()
+        except Exception as e:
+            print(f"Warning: Error closing environment: {e}")
+
+        wandb.finish()
+
+    def load_edge_policy(
+            self,
+            path: Tuple[int],
+            log_folder: str="./logs", 
+            subfolder: str="riskyminiworldenv1",
+        ):
+        edge = (path[-2], path[-1])
+        task_str = self.spec_graph[edge[0]][edge[1]]
+
+        path_file_str = "-".join(str(i) for i in path)
+        edge_task_name = f"path-{path_file_str}-{task_str}"
+        model_file = f"{log_folder}/{subfolder}/{edge_task_name}/best_models/best_model.zip"
+        self.path_policies[path] = DQN.load(model_file)
+
+    def load_path_policies(
+            self, 
+            log_folder: str="./logs", 
+            subfolder: str="riskyminiworldenv1"
+        ):
+        stack = [(0,)]
+
+        while stack:
+            path = stack.pop()
+            for target_v in self.adj_lists[path[-1]]:
+                target_path = path + (target_v,)
+                self.load_edge_policy(target_path, log_folder, subfolder)
+                stack.append(target_path)
     
     def sample(self, target_vertex, n_samples, path, path_samples):
         assert len(path_samples) == n_samples
