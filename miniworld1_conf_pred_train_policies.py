@@ -18,4 +18,4 @@ spec_graph = [
 wandb_project_name = "riskyminiworldenv1"
 
 task_graph = RLTaskGraph(spec_graph, "RiskyMiniworldEnv1-v0")
-task_graph.train_all_paths(wandb_project_name, 100)
+task_graph.train_all_paths(wandb_project_name, 50)

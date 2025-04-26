@@ -13,3 +13,4 @@ pyglet==1.5.27
 stable_baselines3
 wandb
 tensorboard
+tqdm

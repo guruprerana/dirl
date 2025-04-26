@@ -5,6 +5,7 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3 import DQN
+from tqdm import tqdm
 import wandb
 from wandb.integration.sb3 import WandbCallback
 
@@ -110,6 +111,7 @@ class RLTaskGraph(NonConformityScoreGraph):
             verbose=1, 
             tensorboard_log=f"./logs/{wandb_project_name}/{edge_task_name}/tensorboard",
         )
+        print(f"Training policy for {edge_task_name}")
         model.learn(
             total_timesteps=100000,
             callback=[eval_callback, wandb_callback, video_callback],
@@ -121,7 +123,8 @@ class RLTaskGraph(NonConformityScoreGraph):
         # do n_samples rollouts to obtain starting state distribution for next vertex
         env = make_eval_env()
         next_init_states = []
-        for episode in range(n_samples):
+        print(f"Collecting path samples for {edge_task_name}")
+        for episode in tqdm(range(n_samples)):
             obs, info = env.reset()
             env_state = info["env_state"]
             done = False
@@ -140,7 +143,8 @@ class RLTaskGraph(NonConformityScoreGraph):
         videos_folder = f"./logs/{wandb_project_name}/{edge_task_name}/final_policy_recordings"
         env = RecordVideo(env, video_folder=videos_folder, episode_trigger=lambda _: True)
 
-        for _ in range(final_policy_recordings):
+        print(f"Final policy recordings for {edge_task_name}")
+        for _ in tqdm(range(final_policy_recordings)):
             obs, info = env.reset()
             done = False
             total_reward = 0
