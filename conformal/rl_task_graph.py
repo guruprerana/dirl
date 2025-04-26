@@ -26,8 +26,15 @@ class RLTaskGraph(NonConformityScoreGraph):
         self.init_states: Dict[Tuple[int], List[Any]] = dict()
         self.init_states[(0,)] = None
     
-    def train_all_edges(self, wandb_project_name: str, n_samples: int):
-        pass
+    def train_all_paths(self, wandb_project_name: str, n_samples: int):
+        stack = [(0,)]
+
+        while stack:
+            path = stack.pop()
+            for target_v in self.adj_lists[path[-1]]:
+                target_path = path + (target_v,)
+                self._train_edge(target_path, wandb_project_name, n_samples)
+                stack.append(target_path)
 
     def _train_edge(
             self, 
@@ -38,7 +45,8 @@ class RLTaskGraph(NonConformityScoreGraph):
         edge = (path[-2], path[-1])
         task_str = self.spec_graph[edge[0]][edge[1]]
 
-        edge_task_name = f"edge{edge[0]}-{edge[1]}-{task_str}"
+        path_file_str = "-".join(str(i) for i in path)
+        edge_task_name = f"path-{path_file_str}-{task_str}"
         wandb.init(
             project=wandb_project_name,
             monitor_gym=True,
@@ -107,12 +115,50 @@ class RLTaskGraph(NonConformityScoreGraph):
             done = False
 
             while not done:
-                action, _states = model.predict(obs, deterministic=True)
-                obs, reward, terminated, truncated, info = env.step(action)
+                action, _ = model.predict(obs, deterministic=True)
+                obs, _, terminated, truncated, info = env.step(action)
                 env_state = info["env_state"]
                 done = terminated or truncated
 
             next_init_states.append(env_state)
 
         self.init_states[tuple(path)] = next_init_states
+
+    
+    def sample(self, target_vertex, n_samples, path, path_samples):
+        assert len(path_samples) == n_samples
+
+        task_str = self.spec_graph[path[-1]][target_vertex]
+        def make_eval_env():
+            env = gym.make(
+                self.env_name, 
+                render_mode="rgb_array", 
+                task_str=task_str,
+            )
+            return env
+        
+        env = make_eval_env()
+        model = self.path_policies[tuple(path) + (target_vertex,)]
+
+        next_path_samples = []
+        losses = []
+        
+        for sample in path_samples:
+            obs, info = env.reset(options={"state": sample})
+            loss_eval = info["loss_eval"]
+            env_state = info["env_state"]
+            done = False
+
+            while not done:
+                action, _ = model.predict(obs, deterministic=True)
+                obs, _, terminated, truncated, info = env.step(action)
+                loss_eval = info["loss_eval"]
+                env_state = info["env_state"]
+                done = terminated or truncated
+
+            next_path_samples.append(env_state)
+            losses.append(loss_eval)
+
+        return next_path_samples, losses
+
             
