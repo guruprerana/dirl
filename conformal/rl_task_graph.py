@@ -32,7 +32,8 @@ class RLTaskGraph(NonConformityScoreGraph):
             self, 
             wandb_project_name: str, 
             n_samples: int, 
-            final_policy_recordings: int=3
+            training_iters: int=200000,
+            final_policy_recordings: int=3,
         ):
         stack = [(0,)]
 
@@ -44,7 +45,8 @@ class RLTaskGraph(NonConformityScoreGraph):
                     target_path, 
                     wandb_project_name, 
                     n_samples,
-                    final_policy_recordings
+                    training_iters,
+                    final_policy_recordings,
                 )
                 stack.append(target_path)
 
@@ -53,6 +55,7 @@ class RLTaskGraph(NonConformityScoreGraph):
             path: List[int], 
             wandb_project_name: str, 
             n_samples: int,
+            training_iters: int=200000,
             final_policy_recordings: int=3
         ):
         edge = (path[-2], path[-1])
@@ -113,7 +116,7 @@ class RLTaskGraph(NonConformityScoreGraph):
         )
         print(f"Training policy for {edge_task_name}")
         model.learn(
-            total_timesteps=100000,
+            total_timesteps=training_iters,
             callback=[eval_callback, wandb_callback, video_callback],
         )
 

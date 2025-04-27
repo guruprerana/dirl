@@ -54,7 +54,7 @@ class RiskyMiniworld(MiniWorldEnv):
 class RiskyMiniworldEnv1(RiskyMiniworld):
     class Tasks(Enum):
         GOTO_MIDDLE_BOTTOM = "goto-middle-bottom"
-        GOTO_MIDLE_TOP = "goto-middle-top"
+        GOTO_MIDDLE_TOP = "goto-middle-top"
         GOTO_RIGHT_HALL = "goto-right-hall"
 
     def __init__(self, max_episode_steps=300, **kwargs):
@@ -81,7 +81,7 @@ class RiskyMiniworldEnv1(RiskyMiniworld):
             dir = self.set_env_state["agent"]["dir"]
             self.set_env_state = None
         elif self.init_states:
-            state = self.np_random.choice(self.init_states, 1)
+            state = self.np_random.choice(self.init_states, 1)[0]
             if state:
                 pos = np.copy(state["agent"]["pos"])
                 dir = state["agent"]["dir"]
@@ -116,7 +116,7 @@ class RiskyMiniworldEnv1(RiskyMiniworld):
     def get_target_state(self):
         if self.task_str == RiskyMiniworldEnv1.Tasks.GOTO_MIDDLE_BOTTOM:
             return np.array([11, 0, 5])
-        elif self.task_str == RiskyMiniworldEnv1.Tasks.GOTO_MIDLE_TOP:
+        elif self.task_str == RiskyMiniworldEnv1.Tasks.GOTO_MIDDLE_TOP:
             return np.array([11, 0, 15])
         elif self.task_str == RiskyMiniworldEnv1.Tasks.GOTO_RIGHT_HALL:
             return np.array([19, 0, 10])
