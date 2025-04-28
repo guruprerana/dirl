@@ -16,8 +16,8 @@ class RiskyMiniworld(MiniWorldEnv):
             **kwargs
         ):
         self.init_states=init_states
-        super().__init__(**kwargs)
         self.task_str = task_str
+        super().__init__(**kwargs)
 
     def reset(self, *, seed=None, options=None):
         if options and isinstance(options, dict):
@@ -53,8 +53,10 @@ class RiskyMiniworld(MiniWorldEnv):
 
 class RiskyMiniworldEnv1(RiskyMiniworld):
     class Tasks(Enum):
-        GOTO_MIDDLE_BOTTOM = "goto-middle-bottom"
-        GOTO_MIDDLE_TOP = "goto-middle-top"
+        GOTO_MIDDLE_BOTTOM_ENTRY = "goto-middle-bottom-entry"
+        GOTO_MIDDLE_TOP_ENTRY = "goto-middle-top-entry"
+        GOTO_MIDDLE_BOTTOM_EXIT = "goto-middle-bottom-exit"
+        GOTO_MIDDLE_TOP_EXIT = "goto-middle-top-exit"
         GOTO_RIGHT_HALL = "goto-right-hall"
 
     def __init__(self, max_episode_steps=300, **kwargs):
@@ -74,8 +76,8 @@ class RiskyMiniworldEnv1(RiskyMiniworld):
         self.connect_rooms(self.middle_bottom, self.right_hall, min_z=4, max_z=6)
         self.connect_rooms(self.middle_top, self.right_hall, min_z=15, max_z=17)
 
-        pos = np.array([2, 0, 10])
-        dir = 0
+        pos = None
+        dir = None
         if self.set_env_state:
             pos = np.copy(self.set_env_state["agent"]["pos"])
             dir = self.set_env_state["agent"]["dir"]
@@ -86,7 +88,10 @@ class RiskyMiniworldEnv1(RiskyMiniworld):
                 pos = np.copy(state["agent"]["pos"])
                 dir = state["agent"]["dir"]
 
-        self.place_agent(pos=pos, dir=dir)
+        if pos is not None and dir is not None:
+            self.place_agent(pos=pos, dir=dir)
+        else:
+            self.place_agent(min_x=2, max_x=4, min_z=8, max_z=10)
 
     def get_env_state(self, **kwargs):
         return {
@@ -98,10 +103,25 @@ class RiskyMiniworldEnv1(RiskyMiniworld):
     
     def get_reward(self, **kwargs):
         target_state = self.get_target_state()
-        rew = -np.linalg.norm(np.array(self.agent.pos) - target_state)
-        if -rew <= 1:
-            rew += 10000
-        return rew
+        agent_pos = np.array(self.agent.pos)
+        dist = np.linalg.norm(agent_pos - target_state)
+        
+        # Direction component
+        direction_to_target = target_state - agent_pos
+        direction_to_target = direction_to_target / (np.linalg.norm(direction_to_target) + 1e-8)
+        agent_direction = self.agent.dir_vec
+        direction_alignment = np.dot(direction_to_target, agent_direction)
+        
+        # Combined reward
+        distance_reward = -0.1 * dist
+        direction_reward = 0.05 * max(0, direction_alignment)
+        
+        if dist <= 0.3:
+            success_reward = 10.0
+        else:
+            success_reward = 0.0
+            
+        return distance_reward + direction_reward + success_reward
     
     def get_loss_eval(self, **kwargs):
         return 0
@@ -109,19 +129,23 @@ class RiskyMiniworldEnv1(RiskyMiniworld):
     def eval_terminated(self, **kwargs):
         target_state = self.get_target_state()
         dist = np.linalg.norm(np.array(self.agent.pos) - target_state)
-        if dist <= 1:
+        if dist <= 0.3:
             return True
         return False
     
     def get_target_state(self):
-        if self.task_str == RiskyMiniworldEnv1.Tasks.GOTO_MIDDLE_BOTTOM:
-            return np.array([11, 0, 5])
-        elif self.task_str == RiskyMiniworldEnv1.Tasks.GOTO_MIDDLE_TOP:
-            return np.array([11, 0, 15])
+        if self.task_str == RiskyMiniworldEnv1.Tasks.GOTO_MIDDLE_BOTTOM_ENTRY:
+            return np.array([5.5, 0, 5])
+        elif self.task_str == RiskyMiniworldEnv1.Tasks.GOTO_MIDDLE_TOP_ENTRY:
+            return np.array([5.5, 0, 15])
+        elif self.task_str == RiskyMiniworldEnv1.Tasks.GOTO_MIDDLE_BOTTOM_EXIT:
+            return np.array([16.5, 0, 5])
+        elif self.task_str == RiskyMiniworldEnv1.Tasks.GOTO_MIDDLE_TOP_EXIT:
+            return np.array([16.5, 0, 15])
         elif self.task_str == RiskyMiniworldEnv1.Tasks.GOTO_RIGHT_HALL:
             return np.array([19, 0, 10])
         else:
             raise ValueError
-        
+    
 
 gym.register("RiskyMiniworldEnv1-v0", RiskyMiniworldEnv1)

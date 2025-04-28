@@ -39,7 +39,10 @@ class VideoRecorderCallback(BaseCallback):
                 
                 while not done:
                     # Step the environment (recording happens automatically)
-                    action, _ = self.model.predict(obs, deterministic=True)
+                    action, _ = self.model.predict(
+                        obs, 
+                        # deterministic=True,
+                    )
                     obs, reward, terminated, truncated, info = env.step(action)
                     total_reward += reward
                     done = terminated or truncated

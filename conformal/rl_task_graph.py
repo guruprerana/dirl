@@ -1,10 +1,10 @@
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 import gymnasium as gym
 from gymnasium.wrappers import RecordVideo
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.callbacks import EvalCallback
-from stable_baselines3 import DQN
+from stable_baselines3 import PPO
 from tqdm import tqdm
 import wandb
 from wandb.integration.sb3 import WandbCallback
@@ -18,6 +18,8 @@ class RLTaskGraph(NonConformityScoreGraph):
             self, 
             spec_graph: List[Dict[int, str]], 
             env_name: str,
+            env_kwargs: Optional[dict]=None,
+            eval_env_kwargs: Optional[dict]=None,
         ):
         self.spec_graph = spec_graph
         adj_lists = [[v for v in edges.keys()] for edges in spec_graph]
@@ -27,6 +29,9 @@ class RLTaskGraph(NonConformityScoreGraph):
         self.path_policies: Dict[Tuple[int], Any] = dict()
         self.init_states: Dict[Tuple[int], List[Any]] = dict()
         self.init_states[(0,)] = None
+
+        self.env_kwargs = env_kwargs if env_kwargs else dict()
+        self.eval_env_kwargs = eval_env_kwargs if eval_env_kwargs else dict()
     
     def train_all_paths(
             self, 
@@ -77,6 +82,7 @@ class RLTaskGraph(NonConformityScoreGraph):
                 render_mode="rgb_array", 
                 task_str=task_str,
                 init_states=edge_init_states,
+                **self.env_kwargs,
             )
             env = Monitor(env)
             return env
@@ -87,6 +93,7 @@ class RLTaskGraph(NonConformityScoreGraph):
                 render_mode="rgb_array", 
                 task_str=task_str,
                 init_states=edge_init_states,
+                **self.eval_env_kwargs,
             )
             return env
         
@@ -108,7 +115,7 @@ class RLTaskGraph(NonConformityScoreGraph):
             verbose=1,
         )
 
-        model = DQN(
+        model = PPO(
             "CnnPolicy", 
             env, 
             verbose=1, 
@@ -133,7 +140,10 @@ class RLTaskGraph(NonConformityScoreGraph):
             done = False
 
             while not done:
-                action, _ = model.predict(obs, deterministic=True)
+                action, _ = model.predict(
+                    obs, 
+                    # deterministic=True,
+                )
                 obs, _, terminated, truncated, info = env.step(action)
                 env_state = info["env_state"]
                 done = terminated or truncated
@@ -153,7 +163,10 @@ class RLTaskGraph(NonConformityScoreGraph):
             total_reward = 0
 
             while not done:
-                action, info = model.predict(obs, deterministic=True)
+                action, info = model.predict(
+                    obs, 
+                    # deterministic=True,
+                )
                 obs, reward, terminated, truncated, info = env.step(action)
                 total_reward += reward
                 done = terminated or truncated
@@ -182,7 +195,7 @@ class RLTaskGraph(NonConformityScoreGraph):
         path_file_str = "-".join(str(i) for i in path)
         edge_task_name = f"path-{path_file_str}-{task_str}"
         model_file = f"{log_folder}/{subfolder}/{edge_task_name}/best_models/best_model.zip"
-        self.path_policies[path] = DQN.load(model_file)
+        self.path_policies[path] = PPO.load(model_file)
 
     def load_path_policies(
             self, 
@@ -207,6 +220,7 @@ class RLTaskGraph(NonConformityScoreGraph):
                 self.env_name, 
                 render_mode="rgb_array", 
                 task_str=task_str,
+                **self.eval_env_kwargs,
             )
             return env
         
@@ -223,7 +237,10 @@ class RLTaskGraph(NonConformityScoreGraph):
             done = False
 
             while not done:
-                action, _ = model.predict(obs, deterministic=True)
+                action, _ = model.predict(
+                    obs, 
+                    # deterministic=True
+                )
                 obs, _, terminated, truncated, info = env.step(action)
                 loss_eval = info["loss_eval"]
                 env_state = info["env_state"]
@@ -234,4 +251,3 @@ class RLTaskGraph(NonConformityScoreGraph):
 
         return next_path_samples, losses
 
-            
