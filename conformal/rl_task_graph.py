@@ -39,6 +39,7 @@ class RLTaskGraph(NonConformityScoreGraph):
             n_samples: int, 
             training_iters: int=200000,
             final_policy_recordings: int=3,
+            policy_class: str="CnnPolicy",
         ):
         stack = [(0,)]
 
@@ -52,6 +53,7 @@ class RLTaskGraph(NonConformityScoreGraph):
                     n_samples,
                     training_iters,
                     final_policy_recordings,
+                    policy_class,
                 )
                 stack.append(target_path)
 
@@ -61,7 +63,8 @@ class RLTaskGraph(NonConformityScoreGraph):
             wandb_project_name: str, 
             n_samples: int,
             training_iters: int=200000,
-            final_policy_recordings: int=3
+            final_policy_recordings: int=3,
+            policy_class: str="CnnPolicy",
         ):
         edge = (path[-2], path[-1])
         task_str = self.spec_graph[edge[0]][edge[1]]
@@ -116,7 +119,7 @@ class RLTaskGraph(NonConformityScoreGraph):
         )
 
         model = PPO(
-            "CnnPolicy", 
+            policy_class, 
             env, 
             verbose=1, 
             tensorboard_log=f"./logs/{wandb_project_name}/{edge_task_name}/tensorboard",

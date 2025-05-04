@@ -49,6 +49,14 @@ class VideoRecorderCallback(BaseCallback):
                 
                 # Log reward
                 self.logger.record('eval/video_reward', total_reward)
+
+                if isinstance(info, dict):
+                    for key in info.keys():
+                        val = info[key]
+                        try:
+                            self.logger.record(f"eval/{key}", float(val))
+                        except:
+                            pass
                 if self.verbose > 0:
                     print(f"Video recorded at step {self.n_calls}, reward: {total_reward}")
             
