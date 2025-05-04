@@ -1,4 +1,4 @@
-from conformal import miniworld
+import conformal.miniworld
 from conformal.miniworld import RiskyMiniworldEnv1
 from conformal.rl_task_graph import RLTaskGraph
 

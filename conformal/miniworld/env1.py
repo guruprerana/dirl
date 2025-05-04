@@ -1,55 +1,8 @@
 from enum import Enum
-from typing import Any, List, Optional
-import gymnasium as gym
-from gymnasium import spaces
 import numpy as np
-import copy
+from gymnasium import spaces
+from conformal.miniworld.riskyminiworld import RiskyMiniworld
 
-from miniworld.entity import Entity
-from miniworld.miniworld import MiniWorldEnv
-
-class RiskyMiniworld(MiniWorldEnv):
-    def __init__(
-            self, 
-            init_states: Optional[List[Any]]=None,
-            task_str: Optional[str]=None,
-            **kwargs
-        ):
-        self.init_states=init_states
-        self.task_str = task_str
-        super().__init__(**kwargs)
-
-    def reset(self, *, seed=None, options=None):
-        if options and isinstance(options, dict):
-            if "state" in options:
-                self.set_env_state = options["state"]
-        else:
-            self.set_env_state = None
-        obs, info = super().reset(seed=seed, options=options)
-        info["env_state"] = self.get_env_state()
-        info["loss_eval"] = self.get_loss_eval()
-        return obs, info
-    
-    def step(self, action):
-        obs, reward, termination, truncation, info = super().step(action)
-        info["env_state"] = self.get_env_state()
-        info["loss_eval"] = self.get_loss_eval()
-        reward += self.get_reward()
-        termination = self.eval_terminated() or termination
-        return obs, reward, termination, truncation, info
-
-    def get_env_state(self, **kwargs) -> Any:
-        raise NotImplementedError
-    
-    def get_loss_eval(self, **kwargs) -> float:
-        raise NotImplementedError
-    
-    def get_reward(self, **kwargs) -> float:
-        raise NotImplementedError
-    
-    def eval_terminated(self, **kwargs) -> bool:
-        raise NotImplementedError
-    
 
 class RiskyMiniworldEnv1(RiskyMiniworld):
     class Tasks(Enum):
@@ -146,6 +99,4 @@ class RiskyMiniworldEnv1(RiskyMiniworld):
             return np.array([19, 0, 10])
         else:
             raise ValueError
-    
-
-gym.register("RiskyMiniworldEnv1-v0", RiskyMiniworldEnv1)
+        
