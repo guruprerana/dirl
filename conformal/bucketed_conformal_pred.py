@@ -2,6 +2,7 @@ from typing import Dict, List, Tuple
 import numpy as np
 
 from conformal.nonconformity_score_graph import NonConformityScoreGraph
+from conformal.utils import get_dkw_quantile_index
 
 
 class VertexBucket:
@@ -48,7 +49,7 @@ class VertexBuckets:
 
 
 def bucketed_conformal_pred(
-    score_graph: NonConformityScoreGraph, e: float, total_buckets: int, n_samples: int
+    score_graph: NonConformityScoreGraph, e: float, total_buckets: int, n_samples: int, delta: float=0.95,
 ) -> VertexBuckets:
     """
     DP implementation of the bucketed conformal prediction algorithm.
@@ -62,6 +63,7 @@ def bucketed_conformal_pred(
     Returns :
     vbs : (VertexBuckets)
     """
+    delta_bar = delta/(score_graph.n_vertices*score_graph.n_vertices*total_buckets*total_buckets)
     vbs = VertexBuckets(len(score_graph.adj_lists), e, total_buckets, n_samples)
     for i in range(total_buckets + 1):
         vbs.buckets[(0, i)] = VertexBucket(
@@ -87,12 +89,7 @@ def bucketed_conformal_pred(
                         )
                         scores = sorted(scores)
                         rem_e = (bucket - bucket_pred) * (e / total_buckets)
-                        quantile_index = int(np.ceil((1 - rem_e) * (n_samples + 1))) - 1 # -1 to account for 0 index
-                        # then make sure quantile_index is a valid index
-                        if quantile_index < 0:
-                            quantile_index = 0
-                        elif quantile_index >= n_samples:
-                            quantile_index = n_samples - 1
+                        quantile_index = get_dkw_quantile_index(n_samples, rem_e, delta_bar)
 
                         quantile = scores[quantile_index]  # compute quantile
                         pred_vb_max_quantile = (

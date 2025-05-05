@@ -18,6 +18,9 @@ class NonConformityScoreGraph:
         self.sample_cache: Dict[str, Tuple[list, List[float]]] = dict()
         self.samples_full_path_cache: Dict[str, List[List[float]]] = dict()
 
+        self.n_vertices = len(adj_lists)
+        self.n_paths = self.compute_n_paths()
+
     def sample(
         self,
         target_vertex: int,
@@ -40,7 +43,7 @@ class NonConformityScoreGraph:
         path: List[int],
         path_samples: list,
     ) -> Tuple[list, List[float]]:
-        cache_string = str(path) + str(target_vertex)
+        cache_string = str(path) + str(target_vertex) + str(n_samples)
         if cache_string in self.sample_cache:
             return self.sample_cache[cache_string]
         sample = self.sample(target_vertex, n_samples, path, path_samples)
@@ -77,6 +80,21 @@ class NonConformityScoreGraph:
         sample = self.sample_full_path(path, n_samples)
         self.samples_full_path_cache[cache_string] = sample
         return sample
+    
+    def compute_n_paths(self) -> int:
+        stack = [(0,)]
+        paths = 0
+
+        while stack:
+            path = stack.pop()
+            if len(self.adj_lists[path[-1]]) == 0:
+                paths += 1
+            
+            for succ in self.adj_lists[path[-1]]:
+                next_path = path + (succ,)
+                stack.append(next_path)
+
+        return paths
     
 
 def remove_loops(adj_list: List[List[int]]) -> None:

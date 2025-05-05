@@ -4,7 +4,7 @@ spec_num = 13
 
 from conformal.all_paths_conformal_pred import all_paths_conformal_pred
 from conformal.bucketed_conformal_pred import bucketed_conformal_pred
-from conformal.nonconformity_score_graph import DIRLCumRewardScoreGraph, DIRLTimeTakenScoreGraph
+from conformal.dirl_score_graphs import DIRLCumRewardScoreGraph, DIRLTimeTakenScoreGraph
 from spectrl.hierarchy.construction import adj_list_from_task_graph, automaton_graph_from_spec
 from spectrl.hierarchy.reachability import HierarchicalPolicy, ConstrainedEnv
 from spectrl.main.spec_compiler import ev, seq, choose, alw
@@ -47,37 +47,37 @@ bottomright = (0, 3)
 topleft = (3, 0)
 
 # test specs
-spec0 = ev(grid_params.in_room((1, 0)))  # 100 iterations works
-spec1 = ev(grid_params.in_room((2, 0)))  # 200 iterations works
-spec2 = ev(grid_params.in_room(topleft))  # 1000 iterations not enough
-spec3 = alw(grid_params.avoid_center((1, 0)), ev(grid_params.in_room((2, 0))))  # 100 works
-spec4 = seq(ev(grid_params.in_room((1, 0))), ev(grid_params.in_room(topleft)))  # 200 works
-spec5 = seq(ev(grid_params.in_room((2, 0))), ev(grid_params.in_room((2, 2))))  # 200 works
-spec6 = alw(grid_params.avoid_center((1, 0)), ev(
-    grid_params.in_room(topleft)))  # 400 doesn't work
-spec7 = alw(grid_params.avoid_center((2, 0)), ev(grid_params.in_room(topleft)))
-spec8 = choose(ev(grid_params.in_room(topleft)),
-                ev(grid_params.in_room(bottomright)))
+spec0 = ev(grid_params.in_room_without_scaling((1, 0)))  # 100 iterations works
+spec1 = ev(grid_params.in_room_without_scaling((2, 0)))  # 200 iterations works
+spec2 = ev(grid_params.in_room_without_scaling(topleft))  # 1000 iterations not enough
+spec3 = alw(grid_params.avoid_center_without_scaling((1, 0)), ev(grid_params.in_room_without_scaling((2, 0))))  # 100 works
+spec4 = seq(ev(grid_params.in_room_without_scaling((1, 0))), ev(grid_params.in_room_without_scaling(topleft)))  # 200 works
+spec5 = seq(ev(grid_params.in_room_without_scaling((2, 0))), ev(grid_params.in_room_without_scaling((2, 2))))  # 200 works
+spec6 = alw(grid_params.avoid_center_without_scaling((1, 0)), ev(
+    grid_params.in_room_without_scaling(topleft)))  # 400 doesn't work
+spec7 = alw(grid_params.avoid_center_without_scaling((2, 0)), ev(grid_params.in_room_without_scaling(topleft)))
+spec8 = choose(ev(grid_params.in_room_without_scaling(topleft)),
+                ev(grid_params.in_room_without_scaling(bottomright)))
 
-spec9 = choose(alw(grid_params.avoid_center((1, 0)), ev(grid_params.in_room((2, 0)))),
-                ev(grid_params.in_room((0, 2))))
-spec10 = seq(spec9, ev(grid_params.in_room((2, 2))))
-spec10part1 = choose(ev(grid_params.in_room((2, 1))),
-                        ev(grid_params.in_room((3, 2))))
+spec9 = choose(alw(grid_params.avoid_center_without_scaling((1, 0)), ev(grid_params.in_room_without_scaling((2, 0)))),
+                ev(grid_params.in_room_without_scaling((0, 2))))
+spec10 = seq(spec9, ev(grid_params.in_room_without_scaling((2, 2))))
+spec10part1 = choose(ev(grid_params.in_room_without_scaling((2, 1))),
+                        ev(grid_params.in_room_without_scaling((3, 2))))
 spec10part2 = seq(spec10part1,
-                    ev(grid_params.in_room((3, 1))))
+                    ev(grid_params.in_room_without_scaling((3, 1))))
 spec11 = seq(spec10, spec10part2)
 
-spec11part1 = choose(ev(grid_params.in_room((1, 1))),
-                        ev(grid_params.in_room((3, 3))))
+spec11part1 = choose(ev(grid_params.in_room_without_scaling((1, 1))),
+                        ev(grid_params.in_room_without_scaling((3, 3))))
 spec11part2 = seq(spec11part1,
-                    alw(grid_params.avoid_center((2, 3)), ev(grid_params.in_room((1, 3)))))
-# spec11part2easy = ev(grid_params.in_room((1,3)))
+                    alw(grid_params.avoid_center_without_scaling((2, 3)), ev(grid_params.in_room_without_scaling((1, 3)))))
+# spec11part2easy = ev(grid_params.in_room_without_scaling((1,3)))
 spec12 = seq(spec11, spec11part2)
 
-spec12part1 = choose(ev(grid_params.in_room((1, 1))),
-                        ev(grid_params.in_room((0, 3))))
-spec12part2 = seq(spec12part1, ev(grid_params.in_room((0, 1))))
+spec12part1 = choose(ev(grid_params.in_room_without_scaling((1, 1))),
+                        ev(grid_params.in_room_without_scaling((0, 3))))
+spec12part2 = seq(spec12part1, ev(grid_params.in_room_without_scaling((0, 1))))
 spec13 = seq(spec12, spec12part2)
 
 specs = [spec0, spec1, spec2, spec3, spec4, spec5, spec6,

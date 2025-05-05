@@ -2,10 +2,11 @@ from typing import List, Tuple
 import numpy as np
 
 from conformal.nonconformity_score_graph import NonConformityScoreGraph
+from conformal.utils import get_dkw_quantile_index
 
 
 def all_paths_conformal_pred(
-    score_graph: NonConformityScoreGraph, e: float, n_samples: int
+    score_graph: NonConformityScoreGraph, e: float, n_samples: int, delta: float=0.05
 ) -> Tuple[Tuple[int], List[float]]:
     """
     Naive conformal prediction algorithm on the non-confirmity score graph
@@ -17,6 +18,7 @@ def all_paths_conformal_pred(
         score_graph : NonConformityScoreGraph
         e : float (non-coverage rate)
         n_samples : int (number of sample traces to estimate quantile from along each path)
+        delta : float (confidence-level)
 
     Outputs:
         min_path : Tuple[int] (the path that achieves the minimum bound on the non-conformity score)
@@ -26,6 +28,8 @@ def all_paths_conformal_pred(
     path_scores: dict[Tuple[int], List[List[float]]] = dict()
     path_samples[(0,)] = [None for _ in range(n_samples)]
     path_scores[(0,)] = []
+
+    delta_bar = delta/score_graph.n_paths
 
     stack: List[Tuple[int]] = [(0,)]
 
@@ -58,12 +62,7 @@ def all_paths_conformal_pred(
             score_maxes.append((max(sample_path_scores), sample_path_scores))
 
         score_maxes = sorted(score_maxes, key=lambda t: t[0])
-        quantile_index = int(np.ceil((1 - e) * (n_samples + 1))) - 1 # -1 to account for 0 index
-        # then make sure quantile_index is a valid index
-        if quantile_index < 0:
-            quantile_index = 0
-        elif quantile_index >= n_samples:
-            quantile_index = n_samples - 1
+        quantile_index = get_dkw_quantile_index(n_samples, e, delta_bar)
         max_score, scores = score_maxes[quantile_index]
 
         if max_score <= min_path_quantile:
