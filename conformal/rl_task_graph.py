@@ -1,8 +1,9 @@
 from typing import Any, Callable, Dict, List, Optional, Tuple
+import torch
 import gymnasium as gym
 from gymnasium.wrappers import RecordVideo
 from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.vec_env import DummyVecEnv
+from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3 import PPO
 from tqdm import tqdm
@@ -26,20 +27,26 @@ class RLTaskGraph(NonConformityScoreGraph):
         super().__init__(adj_lists)
 
         self.env_name = env_name
+
+        # these save policies for all paths mode
         self.path_policies: Dict[Tuple[int], Any] = dict()
         self.init_states: Dict[Tuple[int], List[Any]] = dict()
         self.init_states[(0,)] = None
+
+        # these save policies for per-edge mode
+        self.edge_policies: Dict[Tuple[int, int], Any] = dict()
 
         self.env_kwargs = env_kwargs if env_kwargs else dict()
         self.eval_env_kwargs = eval_env_kwargs if eval_env_kwargs else dict()
     
     def train_all_paths(
             self, 
-            wandb_project_name: str, 
-            n_samples: int, 
+            wandb_project_name: str="project", 
+            n_samples: int=300, 
             training_iters: int=200000,
             final_policy_recordings: int=3,
             policy_class: str="CnnPolicy",
+            n_envs: int=4,
         ):
         stack = [(0,)]
 
@@ -48,29 +55,59 @@ class RLTaskGraph(NonConformityScoreGraph):
             for target_v in self.adj_lists[path[-1]]:
                 target_path = path + (target_v,)
                 self._train_edge(
-                    target_path, 
-                    wandb_project_name, 
-                    n_samples,
-                    training_iters,
-                    final_policy_recordings,
-                    policy_class,
+                    path=target_path, 
+                    wandb_project_name=wandb_project_name, 
+                    n_samples=n_samples,
+                    training_iters=training_iters,
+                    final_policy_recordings=final_policy_recordings,
+                    policy_class=policy_class,
+                    n_envs=n_envs,
                 )
                 stack.append(target_path)
 
+    def train_all_edges(
+            self,
+            wandb_project_name: str="project",
+            training_iters: int=200_000,
+            final_policy_recordings: int=3,
+            policy_class: str="CnnPolicy",
+            n_envs: int=4,
+        ):
+        for u in range(len(self.adj_lists)):
+            for v in self.adj_lists[u]:
+                self._train_edge(
+                    edge=(u,v),
+                    wandb_project_name=wandb_project_name,
+                    training_iters=training_iters,
+                    final_policy_recordings=final_policy_recordings,
+                    policy_class=policy_class,
+                    n_envs=n_envs,
+                    train_independent_edge=True,
+                )
+
     def _train_edge(
             self, 
-            path: List[int], 
-            wandb_project_name: str, 
-            n_samples: int,
+            path: List[int]=None, 
+            edge: Tuple[int, int]=None,
+            wandb_project_name: str="project", 
+            n_samples: int=300,
             training_iters: int=200000,
             final_policy_recordings: int=3,
             policy_class: str="CnnPolicy",
+            n_envs: int=4,
+            train_independent_edge: bool=False,
         ):
-        edge = (path[-2], path[-1])
+        edge = edge if edge else (path[-2], path[-1])
         task_str = self.spec_graph[edge[0]][edge[1]]
 
-        path_file_str = "-".join(str(i) for i in path)
-        edge_task_name = f"path-{path_file_str}-{task_str}"
+        if path is not None:
+            # training in path mode
+            path_file_str = "-".join(str(i) for i in path)
+            edge_task_name = f"path-{path_file_str}-{task_str}"
+        else:
+            # training in edge mode
+            edge_task_name = f"edge-{edge}-{task_str}"
+
         wandb.init(
             project=wandb_project_name,
             monitor_gym=True,
@@ -78,17 +115,19 @@ class RLTaskGraph(NonConformityScoreGraph):
             sync_tensorboard=True,
         )
 
-        edge_init_states = self.init_states[tuple(path[:-1])]
-        def make_env():
-            env = gym.make(
-                self.env_name, 
-                render_mode="rgb_array", 
-                task_str=task_str,
-                init_states=edge_init_states,
-                **self.env_kwargs,
-            )
-            env = Monitor(env)
-            return env
+        edge_init_states = self.init_states[tuple(path[:-1])] if not train_independent_edge else None
+        def make_env(rank):
+            def _init():
+                env = gym.make(
+                    self.env_name, 
+                    render_mode="rgb_array", 
+                    task_str=task_str,
+                    init_states=edge_init_states,
+                    **self.env_kwargs,
+                )
+                env = Monitor(env)
+                return env
+            return _init
         
         def make_eval_env():
             env = gym.make(
@@ -98,9 +137,10 @@ class RLTaskGraph(NonConformityScoreGraph):
                 init_states=edge_init_states,
                 **self.eval_env_kwargs,
             )
+            env = Monitor(env)
             return env
         
-        env = DummyVecEnv([make_env])
+        env = DummyVecEnv([make_env(0)])
 
         eval_callback = EvalCallback(
             env, 
@@ -118,6 +158,8 @@ class RLTaskGraph(NonConformityScoreGraph):
             verbose=1,
         )
 
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         model = PPO(
             policy_class, 
             env, 
@@ -131,29 +173,34 @@ class RLTaskGraph(NonConformityScoreGraph):
         )
 
         env.close()
-        self.path_policies[tuple(path)] = model
+        if path:
+            self.path_policies[tuple(path)] = model
+        else:
+            self.edge_policies[edge] = model
 
-        # do n_samples rollouts to obtain starting state distribution for next vertex
         env = make_eval_env()
-        next_init_states = []
-        print(f"Collecting path samples for {edge_task_name}")
-        for episode in tqdm(range(n_samples)):
-            obs, info = env.reset()
-            env_state = info["env_state"]
-            done = False
 
-            while not done:
-                action, _ = model.predict(
-                    obs, 
-                    # deterministic=True,
-                )
-                obs, _, terminated, truncated, info = env.step(action)
+        if not train_independent_edge:
+            # do n_samples rollouts to obtain starting state distribution for next vertex
+            next_init_states = []
+            print(f"Collecting path samples for {edge_task_name}")
+            for episode in tqdm(range(n_samples)):
+                obs, info = env.reset()
                 env_state = info["env_state"]
-                done = terminated or truncated
+                done = False
 
-            next_init_states.append(env_state)
+                while not done:
+                    action, _ = model.predict(
+                        obs, 
+                        # deterministic=True,
+                    )
+                    obs, _, terminated, truncated, info = env.step(action)
+                    env_state = info["env_state"]
+                    done = terminated or truncated
 
-        self.init_states[tuple(path)] = next_init_states
+                next_init_states.append(env_state)
+
+            self.init_states[tuple(path)] = next_init_states
 
         #### record final_policy_recordings
         videos_folder = f"./logs/{wandb_project_name}/{edge_task_name}/final_policy_recordings"
@@ -188,17 +235,28 @@ class RLTaskGraph(NonConformityScoreGraph):
 
     def load_edge_policy(
             self,
-            path: Tuple[int],
+            path: Tuple[int]=None,
+            edge: Tuple[int, int]=None,
             log_folder: str="./logs", 
             subfolder: str="riskyminiworldenv1",
         ):
-        edge = (path[-2], path[-1])
+        edge = (path[-2], path[-1]) if path is not None else edge
         task_str = self.spec_graph[edge[0]][edge[1]]
 
-        path_file_str = "-".join(str(i) for i in path)
-        edge_task_name = f"path-{path_file_str}-{task_str}"
+        if path is not None:
+            # training in path mode
+            path_file_str = "-".join(str(i) for i in path)
+            edge_task_name = f"path-{path_file_str}-{task_str}"
+        else:
+            # training in edge mode
+            edge_task_name = f"edge-{edge}-{task_str}"
+
         model_file = f"{log_folder}/{subfolder}/{edge_task_name}/best_models/best_model.zip"
-        self.path_policies[path] = PPO.load(model_file)
+        
+        if path is not None:
+            self.path_policies[path] = PPO.load(model_file)
+        else:
+            self.edge_policies[edge] = PPO.load(model_file)
 
     def load_path_policies(
             self, 
@@ -211,8 +269,17 @@ class RLTaskGraph(NonConformityScoreGraph):
             path = stack.pop()
             for target_v in self.adj_lists[path[-1]]:
                 target_path = path + (target_v,)
-                self.load_edge_policy(target_path, log_folder, subfolder)
+                self.load_edge_policy(path=target_path, log_folder=log_folder, subfolder=subfolder)
                 stack.append(target_path)
+
+    def load_edge_policies(
+            self,
+            log_folder: str="./logs", 
+            subfolder: str="riskyminiworldenv1",
+        ):
+        for u in range(len(self.adj_lists)):
+            for v in self.adj_lists[u]:
+                self.load_edge_policy(edge=(u, v), log_folder=log_folder, subfolder=subfolder)
     
     def sample(self, target_vertex, n_samples, path, path_samples):
         assert len(path_samples) == n_samples
@@ -228,7 +295,11 @@ class RLTaskGraph(NonConformityScoreGraph):
             return env
         
         env = make_eval_env()
-        model = self.path_policies[tuple(path) + (target_vertex,)]
+        
+        if self.path_policies:
+            model = self.path_policies[tuple(path) + (target_vertex,)]
+        else:
+            model = self.edge_policies[(path[-1], target_vertex)]
 
         next_path_samples = []
         losses = []

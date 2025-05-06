@@ -31,10 +31,10 @@ class RiskyMiniworld(MiniWorldEnv):
     
     def step(self, action):
         obs, reward, termination, truncation, info = super().step(action)
-        info["env_state"] = self.get_env_state()
-        info["loss_eval"] = self.get_loss_eval()
-        reward += self.get_reward()
         termination = self.eval_terminated() or termination
+        reward += self.get_reward(termination=termination, truncation=truncation)
+        info["env_state"] = self.get_env_state()
+        info["loss_eval"] = self.get_loss_eval(termination=termination, truncation=truncation)
         return obs, reward, termination, truncation, info
 
     def get_env_state(self, **kwargs) -> Any:
