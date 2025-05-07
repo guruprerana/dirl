@@ -13,10 +13,18 @@ class BoxRelay(RiskyMiniworld):
         GOTO_MIDDLE_BOTTOM_EXIT = "goto-middle-bottom-exit"
         GOTO_RIGHT_HALL_TARGET = "goto-right-hall-target"
 
+        GOTO_MIDDLE_TOP_ENTRY = "goto-middle-top-entry"
+        GOTO_MIDDLE_TOP_TARGET = "goto-middle-top-target"
+        GOTO_MIDDLE_TOP_EXIT1 = "goto-middle-top-exit1"
+        GOTO_MIDDLE_TOP_EXIT2 = "goto-middle-top-exit2"
+        GOTO_RIGHT_HALL_TARGET_FROM_EXIT1 = "goto-right-hall-target-exit1"
+        GOTO_RIGHT_HALL_TARGET_FROM_EXIT2 = "goto-right-hall-target-exit2"
+
+
     def __init__(self, max_episode_steps=300, **kwargs):
         super().__init__(max_episode_steps=max_episode_steps, **kwargs)
 
-        self.action_space = spaces.Discrete(self.actions.move_forward + 1)
+        self.action_space = spaces.Discrete(self.actions.move_back + 1)
 
     def agent_carries(self, ent):
         """
@@ -38,11 +46,17 @@ class BoxRelay(RiskyMiniworld):
         self.middle_top = self.add_rect_room(min_x=7.5, max_x=14.5, min_z=6, max_z=21)
         self.right_hall = self.add_rect_room(min_x=15, max_x=22, min_z=0, max_z=21)
 
-        self.connect_rooms(self.left_hall, self.middle_bottom, min_z=1, max_z=4)
-        self.connect_rooms(self.left_hall, self.middle_top, min_z=12, max_z=15)
-        self.connect_rooms(self.middle_bottom, self.right_hall, min_z=1, max_z=4)
-        self.connect_rooms(self.middle_top, self.right_hall, min_z=9, max_z=12)
-        self.connect_rooms(self.middle_top, self.right_hall, min_z=15, max_z=18)
+        # only create doors when needed
+        if self.task_str in (BoxRelay.Tasks.GOTO_MIDDLE_BOTTOM_ENTRY, BoxRelay.Tasks.GOTO_MIDDLE_BOTTOM_TARGET):
+            self.connect_rooms(self.left_hall, self.middle_bottom, min_z=1, max_z=4)
+        elif self.task_str in (BoxRelay.Tasks.GOTO_MIDDLE_TOP_ENTRY, BoxRelay.Tasks.GOTO_MIDDLE_TOP_TARGET):
+            self.connect_rooms(self.left_hall, self.middle_top, min_z=12, max_z=15)
+        elif self.task_str in (BoxRelay.Tasks.GOTO_MIDDLE_BOTTOM_EXIT, BoxRelay.Tasks.GOTO_RIGHT_HALL_TARGET):
+            self.connect_rooms(self.middle_bottom, self.right_hall, min_z=1, max_z=4)
+        elif self.task_str in (BoxRelay.Tasks.GOTO_MIDDLE_TOP_EXIT1, BoxRelay.Tasks.GOTO_RIGHT_HALL_TARGET_FROM_EXIT1):
+            self.connect_rooms(self.middle_top, self.right_hall, min_z=9, max_z=12)
+        elif self.task_str in (BoxRelay.Tasks.GOTO_MIDDLE_TOP_EXIT2, BoxRelay.Tasks.GOTO_RIGHT_HALL_TARGET_FROM_EXIT2):
+            self.connect_rooms(self.middle_top, self.right_hall, min_z=15, max_z=18)
 
         pos = None
         dir = None
@@ -64,21 +78,36 @@ class BoxRelay(RiskyMiniworld):
         else:
             self.init_agent()
 
-        carry_box = Box("green")
+        carry_box = Box("green", size=0.2)
         target_box = Box("blue")
 
         # need following line from line 581 of miniworld.py which is unfortunately called after gen_world
         self.max_forward_step = self.params.get_max("forward_step")
         if self.task_str == BoxRelay.Tasks.GOTO_LEFT_HALL_TARGET:
-            self.place_entity(carry_box, room=self.left_hall)
-        elif self.task_str in (BoxRelay.Tasks.GOTO_MIDDLE_BOTTOM_ENTRY, BoxRelay.Tasks.GOTO_MIDDLE_BOTTOM_EXIT):
+            self.place_entity(target_box, room=self.left_hall)
+        elif self.task_str in (
+            BoxRelay.Tasks.GOTO_MIDDLE_BOTTOM_ENTRY, 
+            BoxRelay.Tasks.GOTO_MIDDLE_BOTTOM_EXIT,
+            BoxRelay.Tasks.GOTO_MIDDLE_TOP_ENTRY,
+            BoxRelay.Tasks.GOTO_MIDDLE_TOP_EXIT1,
+            BoxRelay.Tasks.GOTO_MIDDLE_TOP_EXIT2,
+        ):
             self.agent_carries(carry_box)
         elif self.task_str == BoxRelay.Tasks.GOTO_MIDDLE_BOTTOM_TARGET:
             self.agent_carries(carry_box)
             self.place_entity(target_box, room=self.middle_bottom)
-        elif self.task_str == BoxRelay.Tasks.GOTO_RIGHT_HALL_TARGET:
+        elif self.task_str == BoxRelay.Tasks.GOTO_MIDDLE_TOP_TARGET:
+            self.agent_carries(carry_box)
+            self.place_entity(target_box, room=self.middle_top)
+        elif self.task_str in (
+            BoxRelay.Tasks.GOTO_RIGHT_HALL_TARGET, 
+            BoxRelay.Tasks.GOTO_RIGHT_HALL_TARGET_FROM_EXIT1, 
+            BoxRelay.Tasks.GOTO_RIGHT_HALL_TARGET_FROM_EXIT2
+        ):
             self.agent_carries(carry_box)
             self.place_entity(target_box, room=self.right_hall)
+        else:
+            raise ValueError
 
         self.carry_box = carry_box
         self.target_box = target_box
@@ -86,6 +115,9 @@ class BoxRelay(RiskyMiniworld):
         if self.prev_carry_time and self.task_str in (
             BoxRelay.Tasks.GOTO_MIDDLE_BOTTOM_TARGET,
             BoxRelay.Tasks.GOTO_RIGHT_HALL_TARGET,
+            BoxRelay.Tasks.GOTO_MIDDLE_TOP_TARGET,
+            BoxRelay.Tasks.GOTO_RIGHT_HALL_TARGET_FROM_EXIT1,
+            BoxRelay.Tasks.GOTO_RIGHT_HALL_TARGET_FROM_EXIT2,
         ):
             self.carry_time = self.prev_carry_time
         else:
@@ -113,7 +145,7 @@ class BoxRelay(RiskyMiniworld):
         direction_alignment = np.dot(direction_to_target, agent_direction)
         
         # Combined reward
-        distance_reward = -0.1 * dist
+        distance_reward = -0.1 * (1 - np.exp(-0.5 * dist))
         direction_reward = 0.05 * max(0, direction_alignment)
         
         success_reward = 0.0
@@ -125,11 +157,24 @@ class BoxRelay(RiskyMiniworld):
         return distance_reward + direction_reward + success_reward + time_penalty
     
     def get_loss_eval(self, termination=False, truncation=False, **kwargs):
-        if self.task_str in (BoxRelay.Tasks.GOTO_LEFT_HALL_TARGET, BoxRelay.Tasks.GOTO_MIDDLE_BOTTOM_ENTRY, BoxRelay.Tasks.GOTO_MIDDLE_BOTTOM_EXIT):
+        if self.task_str in (
+            BoxRelay.Tasks.GOTO_LEFT_HALL_TARGET, 
+            BoxRelay.Tasks.GOTO_MIDDLE_BOTTOM_ENTRY, 
+            BoxRelay.Tasks.GOTO_MIDDLE_BOTTOM_EXIT,
+            BoxRelay.Tasks.GOTO_MIDDLE_TOP_ENTRY,
+            BoxRelay.Tasks.GOTO_MIDDLE_TOP_EXIT1,
+            BoxRelay.Tasks.GOTO_MIDDLE_TOP_EXIT2,
+        ):
             if truncation:
                 return np.inf
             return -np.inf
-        elif self.task_str in (BoxRelay.Tasks.GOTO_MIDDLE_BOTTOM_TARGET, BoxRelay.Tasks.GOTO_RIGHT_HALL_TARGET):
+        elif self.task_str in (
+            BoxRelay.Tasks.GOTO_MIDDLE_BOTTOM_TARGET, 
+            BoxRelay.Tasks.GOTO_RIGHT_HALL_TARGET,
+            BoxRelay.Tasks.GOTO_MIDDLE_TOP_TARGET,
+            BoxRelay.Tasks.GOTO_RIGHT_HALL_TARGET_FROM_EXIT1,
+            BoxRelay.Tasks.GOTO_RIGHT_HALL_TARGET_FROM_EXIT2,
+        ):
             if termination:
                 return self.carry_time
             if truncation:
@@ -141,10 +186,18 @@ class BoxRelay(RiskyMiniworld):
     def eval_terminated(self, **kwargs):
         target_state = self.get_target_state()
         dist = np.linalg.norm(np.array(self.agent.pos) - target_state)
-        if self.task_str in (BoxRelay.Tasks.GOTO_LEFT_HALL_TARGET,):
+        if self.task_str in (
+            BoxRelay.Tasks.GOTO_LEFT_HALL_TARGET,
+        ):
             if dist <= 1.5:
                 return True
-        elif self.task_str in (BoxRelay.Tasks.GOTO_MIDDLE_BOTTOM_TARGET, BoxRelay.Tasks.GOTO_RIGHT_HALL_TARGET,):
+        elif self.task_str in (
+            BoxRelay.Tasks.GOTO_MIDDLE_BOTTOM_TARGET, 
+            BoxRelay.Tasks.GOTO_RIGHT_HALL_TARGET,
+            BoxRelay.Tasks.GOTO_MIDDLE_TOP_TARGET,
+            BoxRelay.Tasks.GOTO_RIGHT_HALL_TARGET_FROM_EXIT1,
+            BoxRelay.Tasks.GOTO_RIGHT_HALL_TARGET_FROM_EXIT2,
+        ):
             dist_carrying = np.linalg.norm(np.array(self.carry_box.pos) - target_state)
             if dist_carrying <= 1.5:
                 return True
@@ -155,13 +208,25 @@ class BoxRelay(RiskyMiniworld):
     
     def get_target_state(self):
         if self.task_str == BoxRelay.Tasks.GOTO_LEFT_HALL_TARGET:
-            return np.array(self.carry_box.pos)
-        elif self.task_str in (BoxRelay.Tasks.GOTO_MIDDLE_BOTTOM_TARGET, BoxRelay.Tasks.GOTO_RIGHT_HALL_TARGET):
+            return np.array(self.target_box.pos)
+        elif self.task_str in (
+            BoxRelay.Tasks.GOTO_MIDDLE_BOTTOM_TARGET, 
+            BoxRelay.Tasks.GOTO_RIGHT_HALL_TARGET,
+            BoxRelay.Tasks.GOTO_MIDDLE_TOP_TARGET,
+            BoxRelay.Tasks.GOTO_RIGHT_HALL_TARGET_FROM_EXIT1,
+            BoxRelay.Tasks.GOTO_RIGHT_HALL_TARGET_FROM_EXIT2,
+        ):
             return np.array(self.target_box.pos)
         elif self.task_str == BoxRelay.Tasks.GOTO_MIDDLE_BOTTOM_ENTRY:
             return np.array([7.25, 0, 2.5])
         elif self.task_str == BoxRelay.Tasks.GOTO_MIDDLE_BOTTOM_EXIT:
             return np.array([14.75, 0, 2.5])
+        elif self.task_str == BoxRelay.Tasks.GOTO_MIDDLE_TOP_ENTRY:
+            return np.array([7.25, 0, 13.5])
+        elif self.task_str == BoxRelay.Tasks.GOTO_MIDDLE_TOP_EXIT1:
+            return np.array([14.75, 0, 10.5])
+        elif self.task_str == BoxRelay.Tasks.GOTO_MIDDLE_TOP_EXIT2:
+            return np.array([14.75, 0, 16.5])
         else:
             raise ValueError
         
@@ -171,11 +236,23 @@ class BoxRelay(RiskyMiniworld):
         elif self.task_str == BoxRelay.Tasks.GOTO_MIDDLE_BOTTOM_ENTRY:
             self.place_agent(room=self.left_hall)
         elif self.task_str == BoxRelay.Tasks.GOTO_MIDDLE_BOTTOM_TARGET:
-            self.place_agent(min_x=6.9, max_x=7.6, min_z=1, max_z=4)
+            self.place_agent(min_x=6.9, max_x=7.6, min_z=1.0, max_z=4.0)
         elif self.task_str == BoxRelay.Tasks.GOTO_MIDDLE_BOTTOM_EXIT:
             self.place_agent(room=self.middle_bottom)
         elif self.task_str == BoxRelay.Tasks.GOTO_RIGHT_HALL_TARGET:
-            self.place_agent(min_x=14.4, max_x=15.1, min_z=1, max_z=4)
+            self.place_agent(min_x=14.4, max_x=15.1, min_z=1.0, max_z=4.0)
+        elif self.task_str == BoxRelay.Tasks.GOTO_MIDDLE_TOP_ENTRY:
+            self.place_agent(room=self.left_hall)
+        elif self.task_str == BoxRelay.Tasks.GOTO_MIDDLE_TOP_TARGET:
+            self.place_agent(min_x=6.9, max_x=7.6, min_z=12.0, max_z=15.0)
+        elif self.task_str == BoxRelay.Tasks.GOTO_MIDDLE_TOP_EXIT1:
+            self.place_agent(room=self.middle_top)
+        elif self.task_str == BoxRelay.Tasks.GOTO_MIDDLE_TOP_EXIT2:
+            self.place_agent(room=self.middle_top)
+        elif self.task_str == BoxRelay.Tasks.GOTO_RIGHT_HALL_TARGET_FROM_EXIT1:
+            self.place_agent(min_x=14.4, max_x=15.1, min_z=9.0, max_z=12.0)
+        elif self.task_str == BoxRelay.Tasks.GOTO_RIGHT_HALL_TARGET_FROM_EXIT2:
+            self.place_agent(min_x=14.4, max_x=15.1, min_z=15.0, max_z=18.0)
         else:
             raise ValueError
 
@@ -186,6 +263,7 @@ spec_graph = [
     },
     {
         2: BoxRelay.Tasks.GOTO_MIDDLE_BOTTOM_ENTRY,
+        6: BoxRelay.Tasks.GOTO_MIDDLE_TOP_ENTRY,
     },
     {
         3: BoxRelay.Tasks.GOTO_MIDDLE_BOTTOM_TARGET,
@@ -197,4 +275,17 @@ spec_graph = [
         5: BoxRelay.Tasks.GOTO_RIGHT_HALL_TARGET,
     },
     {},
+    {
+        7: BoxRelay.Tasks.GOTO_MIDDLE_TOP_TARGET,
+    },
+    {
+        8: BoxRelay.Tasks.GOTO_MIDDLE_TOP_EXIT1,
+        9: BoxRelay.Tasks.GOTO_MIDDLE_TOP_EXIT2,
+    },
+    {
+        5: BoxRelay.Tasks.GOTO_RIGHT_HALL_TARGET_FROM_EXIT1,
+    },
+    {
+        5: BoxRelay.Tasks.GOTO_RIGHT_HALL_TARGET_FROM_EXIT2,
+    }
 ]

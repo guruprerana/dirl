@@ -1,14 +1,21 @@
 from conformal.bucketed_conformal_pred import bucketed_conformal_pred
 import conformal.miniworld
-from conformal.miniworld.boxrelay import spec_graph
+from conformal.miniworld.boxrelay import spec_graph, BoxRelay
 from conformal.rl_task_graph import RLTaskGraph
+
+# spec_graph = [
+#     {
+#         1: BoxRelay.Tasks.GOTO_RIGHT_HALL_TARGET,
+#     },
+#     {},
+# ]
 
 wandb_project_name = "boxrelayenv-agentview"
 env_kwargs = {"view": "agent"}
 task_graph = RLTaskGraph(spec_graph, "BoxRelay-v0", env_kwargs=env_kwargs, eval_env_kwargs=env_kwargs)
 
 def train():
-    task_graph.train_all_edges(wandb_project_name, training_iters=200_000, final_policy_recordings=3, n_envs=1)
+    task_graph.train_all_edges(wandb_project_name, training_iters=500_000, final_policy_recordings=3, n_envs=1)
 
 def risk_min():
     task_graph.load_edge_policies(subfolder=wandb_project_name)
@@ -25,4 +32,4 @@ def risk_min():
     print(data)
 
 if __name__ == "__main__":
-    risk_min()
+    train()
