@@ -58,6 +58,7 @@ class BoxRelay(RiskyMiniworld):
         elif self.task_str in (BoxRelay.Tasks.GOTO_MIDDLE_TOP_EXIT2, BoxRelay.Tasks.GOTO_RIGHT_HALL_TARGET_FROM_EXIT2):
             self.connect_rooms(self.middle_top, self.right_hall, min_z=15, max_z=18)
 
+        self._gen_static_data()
         pos = None
         dir = None
         self.prev_carry_time = None
@@ -74,7 +75,10 @@ class BoxRelay(RiskyMiniworld):
                 self.prev_carry_time = state["carry_time"]
 
         if pos is not None and dir is not None:
-            self.place_agent(pos=pos, dir=dir)
+            if self.intersect(self.agent, pos, self.agent.radius):
+                self.init_agent()
+            else:
+                self.place_agent(pos=pos, dir=dir)
         else:
             self.init_agent()
 
@@ -84,7 +88,7 @@ class BoxRelay(RiskyMiniworld):
         # need following line from line 581 of miniworld.py which is unfortunately called after gen_world
         self.max_forward_step = self.params.get_max("forward_step")
         if self.task_str == BoxRelay.Tasks.GOTO_LEFT_HALL_TARGET:
-            self.place_entity(target_box, room=self.left_hall)
+            self.place_entity(target_box, room=self.left_hall, max_x=4)
         elif self.task_str in (
             BoxRelay.Tasks.GOTO_MIDDLE_BOTTOM_ENTRY, 
             BoxRelay.Tasks.GOTO_MIDDLE_BOTTOM_EXIT,
@@ -105,7 +109,7 @@ class BoxRelay(RiskyMiniworld):
             BoxRelay.Tasks.GOTO_RIGHT_HALL_TARGET_FROM_EXIT2
         ):
             self.agent_carries(carry_box)
-            self.place_entity(target_box, room=self.right_hall)
+            self.place_entity(target_box, room=self.right_hall, min_x=18)
         else:
             raise ValueError
 

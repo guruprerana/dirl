@@ -1,5 +1,6 @@
 from typing import Any, Callable, Dict, List, Optional, Tuple
 import torch
+import numpy as np
 import gymnasium as gym
 from gymnasium.wrappers import RecordVideo
 from stable_baselines3.common.monitor import Monitor
@@ -9,6 +10,7 @@ from stable_baselines3 import PPO
 from tqdm import tqdm
 import wandb
 from wandb.integration.sb3 import WandbCallback
+import pickle
 
 from conformal.nonconformity_score_graph import NonConformityScoreGraph
 from conformal.video_recorder_callback import VideoRecorderCallback
@@ -160,17 +162,22 @@ class RLTaskGraph(NonConformityScoreGraph):
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        model = PPO(
-            policy_class, 
-            env, 
-            verbose=1, 
-            tensorboard_log=f"./logs/{wandb_project_name}/{edge_task_name}/tensorboard",
-        )
-        print(f"Training policy for {edge_task_name}")
-        model.learn(
-            total_timesteps=training_iters,
-            callback=[eval_callback, wandb_callback, video_callback],
-        )
+        try:
+            print(f"Trying to load model for {edge_task_name}")
+            model = PPO.load(f"./logs/{wandb_project_name}/{edge_task_name}/final_model.zip")
+        except:
+            model = PPO(
+                policy_class, 
+                env, 
+                verbose=1, 
+                tensorboard_log=f"./logs/{wandb_project_name}/{edge_task_name}/tensorboard",
+            )
+            print(f"Training policy for {edge_task_name}")
+            model.learn(
+                total_timesteps=training_iters,
+                callback=[eval_callback, wandb_callback, video_callback],
+            )
+            model.save(f"./logs/{wandb_project_name}/{edge_task_name}/final_model")
 
         env.close()
         if path:
@@ -182,25 +189,40 @@ class RLTaskGraph(NonConformityScoreGraph):
 
         if not train_independent_edge:
             # do n_samples rollouts to obtain starting state distribution for next vertex
-            next_init_states = []
-            print(f"Collecting path samples for {edge_task_name}")
-            for episode in tqdm(range(n_samples)):
-                obs, info = env.reset()
-                env_state = info["env_state"]
-                done = False
+            try:
+                with open(f"./logs/{wandb_project_name}/{edge_task_name}/path_init_states.pkl", "rb") as f:
+                    self.init_states[tuple(path)] = pickle.load(f)
+            except:
+                next_init_states = []
+                print(f"Collecting path samples for {edge_task_name}")
+                for _ in tqdm(range(n_samples)):
+                    loss_eval = np.inf
+                    while loss_eval == np.inf:
+                        # only collect successful samples
+                        obs, info = env.reset()
+                        env_state = info["env_state"]
+                        done = False
 
-                while not done:
-                    action, _ = model.predict(
-                        obs, 
-                        # deterministic=True,
-                    )
-                    obs, _, terminated, truncated, info = env.step(action)
-                    env_state = info["env_state"]
-                    done = terminated or truncated
+                        rew = 0
+                        while not done:
+                            action, _ = model.predict(
+                                obs, 
+                                # deterministic=True,
+                            )
+                            obs, r, terminated, truncated, info = env.step(action)
+                            rew += r
+                            env_state = info["env_state"]
+                            loss_eval = info["loss_eval"]
+                            done = terminated or truncated
 
-                next_init_states.append(env_state)
+                    next_init_states.append(env_state)
+                    wandb.log({"eval/path_samples_cumrew": rew})
 
-            self.init_states[tuple(path)] = next_init_states
+                self.init_states[tuple(path)] = next_init_states
+
+                with open(f"./logs/{wandb_project_name}/{edge_task_name}/path_init_states.pkl", "wb") as f:
+                    pickle.dump(next_init_states, f)
+
 
         #### record final_policy_recordings
         videos_folder = f"./logs/{wandb_project_name}/{edge_task_name}/final_policy_recordings"
@@ -208,18 +230,21 @@ class RLTaskGraph(NonConformityScoreGraph):
 
         print(f"Final policy recordings for {edge_task_name}")
         for _ in tqdm(range(final_policy_recordings)):
-            obs, info = env.reset()
-            done = False
-            total_reward = 0
+            loss_eval = np.inf
+            while loss_eval == np.inf:
+                obs, info = env.reset()
+                done = False
+                total_reward = 0
 
-            while not done:
-                action, info = model.predict(
-                    obs, 
-                    # deterministic=True,
-                )
-                obs, reward, terminated, truncated, info = env.step(action)
-                total_reward += reward
-                done = terminated or truncated
+                while not done:
+                    action, info = model.predict(
+                        obs, 
+                        # deterministic=True,
+                    )
+                    obs, reward, terminated, truncated, info = env.step(action)
+                    total_reward += reward
+                    loss_eval = info["loss_eval"]
+                    done = terminated or truncated
 
             wandb.log({"eval/final_policy_recordings_cumrew": total_reward})
 
@@ -251,7 +276,7 @@ class RLTaskGraph(NonConformityScoreGraph):
             # training in edge mode
             edge_task_name = f"edge-{edge}-{task_str}"
 
-        model_file = f"{log_folder}/{subfolder}/{edge_task_name}/best_models/best_model.zip"
+        model_file = f"{log_folder}/{subfolder}/{edge_task_name}/final_model.zip"
         
         if path is not None:
             self.path_policies[path] = PPO.load(model_file)
@@ -304,21 +329,34 @@ class RLTaskGraph(NonConformityScoreGraph):
         next_path_samples = []
         losses = []
         
-        for sample in path_samples:
-            obs, info = env.reset(options={"state": sample})
-            loss_eval = info["loss_eval"]
-            env_state = info["env_state"]
-            done = False
+        print(f"Sampling edge {(path[-1], target_vertex)}")
+        for i in tqdm(range(len(path_samples))):
+            sample = path_samples[i]
 
-            while not done:
-                action, _ = model.predict(
-                    obs, 
-                    # deterministic=True
-                )
-                obs, _, terminated, truncated, info = env.step(action)
+            loss_eval = np.inf
+            i = 0
+            while loss_eval == np.inf and i < 100:
+                obs, info = env.reset(options={"state": sample})
                 loss_eval = info["loss_eval"]
                 env_state = info["env_state"]
-                done = terminated or truncated
+                done = False
+
+                while not done:
+                    action, _ = model.predict(
+                        obs, 
+                        # deterministic=True
+                    )
+                    obs, _, terminated, truncated, info = env.step(action)
+                    loss_eval = info["loss_eval"]
+                    env_state = info["env_state"]
+                    done = terminated or truncated
+
+                i += 1
+                if loss_eval == np.inf:
+                    print(sample)
+                if i == 100:
+                    print(sample)
+                    raise ValueError
 
             next_path_samples.append(env_state)
             losses.append(loss_eval)
