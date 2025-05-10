@@ -1,5 +1,6 @@
 from typing import List, Tuple
 import numpy as np
+from tqdm import tqdm
 from conformal.nonconformity_score_graph import NonConformityScoreGraph
 from spectrl.hierarchy.path_policies import PathPolicy
 from spectrl.hierarchy.reachability import ReachabilityEnv
@@ -28,7 +29,8 @@ class DIRLNonConformityScoreGraph(NonConformityScoreGraph):
         pp = self.path_policies.get_vertex_path_policy(path)
         scores: List[float] = []
         next_path_samples = []
-        for init_state in path_samples:
+        print(f"Drawing samples for {path} -> {target_vertex}")
+        for init_state in tqdm(path_samples):
             sarss = get_rollout(
                 pp.reach_envs[target_vertex],
                 pp.policies[target_vertex],

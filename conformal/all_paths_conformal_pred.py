@@ -2,11 +2,15 @@ from typing import List, Tuple
 import numpy as np
 
 from conformal.nonconformity_score_graph import NonConformityScoreGraph
-from conformal.utils import get_dkw_quantile_index
+from conformal.utils import get_conformal_quantile_index, get_dkw_quantile_index
 
 
 def all_paths_conformal_pred(
-    score_graph: NonConformityScoreGraph, e: float, n_samples: int, delta: float=0.05
+    score_graph: NonConformityScoreGraph, 
+    e: float, 
+    n_samples: int, 
+    delta: float=0.05,
+    quantile_eval: str="dkw",
 ) -> Tuple[Tuple[int], List[float]]:
     """
     Naive conformal prediction algorithm on the non-confirmity score graph
@@ -62,7 +66,10 @@ def all_paths_conformal_pred(
             score_maxes.append((max(sample_path_scores), sample_path_scores))
 
         score_maxes = sorted(score_maxes, key=lambda t: t[0])
-        quantile_index = get_dkw_quantile_index(n_samples, e, delta_bar)
+        if quantile_eval == "conformal":
+            quantile_index = get_conformal_quantile_index(n_samples, e)
+        else:
+            quantile_index = get_dkw_quantile_index(n_samples, e, delta_bar)
         max_score, scores = score_maxes[quantile_index]
 
         if max_score <= min_path_quantile:

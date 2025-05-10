@@ -143,8 +143,8 @@ class RoomsEnv(gym.Env):
         self.max_timesteps = max_timesteps
 
         max_vel = np.amin(self.grid_params.wall_size) / 2
-        # self.action_scale = np.array([max_vel, np.pi/2])
-        self.action_scale = np.array([max_vel, max_vel])
+        self.action_scale = np.array([max_vel, np.pi/2])
+        # self.action_scale = np.array([max_vel, max_vel])
 
         # set the initial state
         self.reset()
@@ -156,8 +156,8 @@ class RoomsEnv(gym.Env):
 
     def step(self, action):
         action = self.action_scale * action
-        # action = np.array([action[0] * math.cos(action[1]),
-        #                    action[0] * math.sin(action[1])])
+        action = np.array([action[0] * math.cos(action[1]),
+                           action[0] * math.sin(action[1])])
         next_state = self.state + action
         if self.path_clear(self.state, next_state):
             self.state = next_state

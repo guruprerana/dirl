@@ -1,5 +1,6 @@
 from heapq import heappop, heappush
 from typing import Dict, List, Tuple
+import pickle
 
 
 class NonConformityScoreGraph:
@@ -43,7 +44,7 @@ class NonConformityScoreGraph:
         path: List[int],
         path_samples: list,
     ) -> Tuple[list, List[float]]:
-        cache_string = str(path) + str(target_vertex) + str(n_samples)
+        cache_string = str(list(path)) + str(target_vertex) + str(n_samples)
         if cache_string in self.sample_cache:
             return self.sample_cache[cache_string]
         sample = self.sample(target_vertex, n_samples, path, path_samples)
@@ -74,7 +75,7 @@ class NonConformityScoreGraph:
         path: List[int],
         n_samples: int,
     ) -> List[List[float]]:
-        cache_string = str(path) + str(n_samples)
+        cache_string = str(list(path)) + str(n_samples)
         if cache_string in self.samples_full_path_cache:
             return self.samples_full_path_cache[cache_string]
         sample = self.sample_full_path(path, n_samples)
@@ -95,6 +96,14 @@ class NonConformityScoreGraph:
                 stack.append(next_path)
 
         return paths
+    
+    def save_caches(self, file: str):
+        with open(file, "wb") as f:
+            pickle.dump((self.sample_cache, self.samples_full_path_cache), f)
+
+    def load_caches(self, file: str):
+        with open(file, "rb") as f:
+            self.sample_cache, self.samples_full_path_cache = pickle.load(f)
     
 
 def remove_loops(adj_list: List[List[int]]) -> None:
