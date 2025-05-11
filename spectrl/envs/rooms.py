@@ -143,8 +143,8 @@ class RoomsEnv(gym.Env):
         self.max_timesteps = max_timesteps
 
         max_vel = np.amin(self.grid_params.wall_size) / 2
+        self.max_vel = max_vel
         self.action_scale = np.array([max_vel, np.pi/2])
-        # self.action_scale = np.array([max_vel, max_vel])
 
         # set the initial state
         self.reset()
@@ -288,3 +288,33 @@ class RoomsEnv(gym.Env):
         x = ((s2[0] - s1[0]) * (y - s1[1]) / (s2[1] - s1[1])) + s1[0]
         return (self.grid_params.vdoor[0] <= x
                 and x <= self.grid_params.vdoor[1])
+    
+
+class RoomsEnvCartesian(RoomsEnv):
+    """
+    Version of the rooms env with actions in cartesian instead of polar coordinates
+    """
+    def __init__(self, grid_params, start_room, goal_room, max_timesteps=1000):
+        super().__init__(grid_params, start_room, goal_room, max_timesteps)
+        self.action_scale = np.array([self.max_vel, self.max_vel])
+
+        # set the initial state
+        self.reset()
+
+    def step(self, action):
+        action = self.action_scale * action
+        next_state = self.state + action
+        if self.path_clear(self.state, next_state):
+            self.state = next_state
+            self.steps += 1
+            reward = 0
+            done = self.steps > self.max_timesteps
+            if self.goal_region.contains(next_state):
+                reward = 1
+                done = True
+            return self.state, reward, done, {}
+        else:
+            reward = 0
+            done = True
+            return self.state, reward, done, {}
+

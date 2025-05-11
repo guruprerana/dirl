@@ -5,7 +5,7 @@ use_gpu = True
 
 from conformal.all_paths_conformal_pred import all_paths_conformal_pred
 from conformal.bucketed_conformal_pred import bucketed_conformal_pred
-from conformal.nonconformity_score_graph import DIRLCumRewardScoreGraph, DIRLTimeTakenScoreGraph
+from conformal.dirl_score_graphs import DIRLCumRewardScoreGraph, DIRLTimeTakenScoreGraph
 from spectrl.hierarchy.construction import adj_list_from_task_graph, automaton_graph_from_spec
 from spectrl.hierarchy.reachability import HierarchicalPolicy, ConstrainedEnv
 from spectrl.main.spec_compiler import ev, seq, choose, alw
@@ -20,7 +20,7 @@ from spectrl.examples.rooms_envs import (
     START_ROOM,
     FINAL_ROOM,
 )
-from spectrl.envs.rooms import RoomsEnv
+from spectrl.envs.rooms import RoomsEnvCartesian
 
 import os
 
@@ -41,7 +41,7 @@ print(
 )
 
 # Step 1: initialize system environment
-system = RoomsEnv(grid_params, START_ROOM[env_num], FINAL_ROOM[env_num])
+system = RoomsEnvCartesian(grid_params, START_ROOM[env_num], FINAL_ROOM[env_num])
 
 state_dim = system.observation_space.shape[0]
 action_dim = system.action_space.shape[0]

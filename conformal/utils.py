@@ -10,7 +10,7 @@ def get_dkw_quantile_index(n_samples: int, alpha: float, delta: float) -> int:
     return index
 
 def get_conformal_quantile_index(n_samples: int, alpha: float) -> int:
-    q = 1 - alpha + (1.0/(n_samples+1.0))
+    q = 1 - alpha
     index = int(np.ceil(n_samples * q) - 1)
     if index < 0:
         return 0
