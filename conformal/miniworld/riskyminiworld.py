@@ -20,7 +20,7 @@ class RiskyMiniworld(MiniWorldEnv):
 
     def reset(self, *, seed=None, options=None):
         if options and isinstance(options, dict):
-            if "state" in options:
+            if "state" in options and options["state"] != None:
                 self.set_env_state = options["state"]
         else:
             self.set_env_state = None

@@ -16,3 +16,4 @@ stable_baselines3
 wandb
 tensorboard
 tqdm
+scipys

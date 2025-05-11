@@ -10,7 +10,7 @@ class NonConformityScoreGraph:
     non-conformity scores.
     """
 
-    def __init__(self, adj_lists: List[List[int]]) -> None:
+    def __init__(self, adj_lists: List[List[int]], cache_save_file: str=None) -> None:
         # adjacency lists of the DAG
         remove_loops(adj_lists)
         self.adj_lists = adj_lists
@@ -21,6 +21,9 @@ class NonConformityScoreGraph:
 
         self.n_vertices = len(adj_lists)
         self.n_paths = self.compute_n_paths()
+
+        self.load_caches(cache_save_file)
+        self.cache_save_file = cache_save_file
 
     def sample(
         self,
@@ -49,6 +52,7 @@ class NonConformityScoreGraph:
             return self.sample_cache[cache_string]
         sample = self.sample(target_vertex, n_samples, path, path_samples)
         self.sample_cache[cache_string] = sample
+        self.save_caches(self.cache_save_file)
         return sample
     
     def sample_full_path(
@@ -80,6 +84,7 @@ class NonConformityScoreGraph:
             return self.samples_full_path_cache[cache_string]
         sample = self.sample_full_path(path, n_samples)
         self.samples_full_path_cache[cache_string] = sample
+        self.save_caches(self.cache_save_file)
         return sample
     
     def compute_n_paths(self) -> int:
@@ -98,12 +103,19 @@ class NonConformityScoreGraph:
         return paths
     
     def save_caches(self, file: str):
+        if not file:
+            return
         with open(file, "wb") as f:
             pickle.dump((self.sample_cache, self.samples_full_path_cache), f)
 
     def load_caches(self, file: str):
-        with open(file, "rb") as f:
-            self.sample_cache, self.samples_full_path_cache = pickle.load(f)
+        if not file:
+            return
+        try:
+            with open(file, "rb") as f:
+                self.sample_cache, self.samples_full_path_cache = pickle.load(f)
+        except:
+            return
     
 
 def remove_loops(adj_list: List[List[int]]) -> None:

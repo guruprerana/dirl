@@ -23,10 +23,11 @@ class RLTaskGraph(NonConformityScoreGraph):
             env_name: str,
             env_kwargs: Optional[dict]=None,
             eval_env_kwargs: Optional[dict]=None,
+            cache_save_file: str=None,
         ):
         self.spec_graph = spec_graph
         adj_lists = [[v for v in edges.keys()] for edges in spec_graph]
-        super().__init__(adj_lists)
+        super().__init__(adj_lists, cache_save_file=cache_save_file)
 
         self.env_name = env_name
 
@@ -335,7 +336,7 @@ class RLTaskGraph(NonConformityScoreGraph):
 
             loss_eval = np.inf
             i = 0
-            while loss_eval == np.inf and i < 100:
+            while loss_eval == np.inf:
                 obs, info = env.reset(options={"state": sample})
                 loss_eval = info["loss_eval"]
                 env_state = info["env_state"]
@@ -352,11 +353,12 @@ class RLTaskGraph(NonConformityScoreGraph):
                     done = terminated or truncated
 
                 i += 1
-                if loss_eval == np.inf:
+                if i == 20:
                     print(sample)
-                if i == 100:
-                    print(sample)
-                    raise ValueError
+                    sample = None
+                if i == 40:
+                    print(f"Unable to complete sample for {(path[-1], target_vertex)}")
+                    break
 
             next_path_samples.append(env_state)
             losses.append(loss_eval)
