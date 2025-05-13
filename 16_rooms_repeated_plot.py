@@ -60,9 +60,9 @@ def create_plot():
     # Update font sizes for better readability
     plt.rcParams.update({
         'font.size': 16,          # Default font size (e.g., for ticks)
-        # 'axes.labelsize': 12,     # X and Y labels
+        'axes.labelsize': 20,     # X and Y labels
         # 'axes.titlesize': 14,     # Plot title
-        # 'legend.fontsize': 10,    # Legend
+        'legend.fontsize': 20,    # Legend
         # 'xtick.labelsize': 10,    # X-axis tick labels
         # 'ytick.labelsize': 10     # Y-axis tick labels
     })
@@ -138,7 +138,7 @@ def create_plot():
     ax.legend()
     ax.grid(True)
     
-    plt.savefig(plot_output_path)
+    plt.savefig(plot_output_path, dpi=300)
     print(f"Plot saved to {plot_output_path}")
 
     # Reset rcParams to default to avoid affecting other plots if this script is imported

@@ -112,7 +112,14 @@ def main():
         print("Could not generate plot due to data loading errors or empty datasets. Please check file paths and content.")
         return
 
-    plt.rcParams.update({'font.size': 16})  # Set global font size
+    plt.rcParams.update({
+        'font.size': 16,          # Default font size (e.g., for ticks)
+        'axes.labelsize': 20,     # X and Y labels
+        # 'axes.titlesize': 14,     # Plot title
+        'legend.fontsize': 20,    # Legend
+        # 'xtick.labelsize': 10,    # X-axis tick labels
+        # 'ytick.labelsize': 10     # Y-axis tick labels
+    })
     fig, ax = plt.subplots(figsize=(8, 6)) # Set figure size
 
     line1, = ax.plot(num_buckets1, coverages1, linestyle='-', label=label1) # Changed
@@ -147,7 +154,7 @@ def main():
     plt.tight_layout()
 
     try:
-        plt.savefig(OUTPUT_IMAGE_NAME)
+        plt.savefig(OUTPUT_IMAGE_NAME, dpi=300) # Added dpi argument
         print(f"Plot saved to {os.path.abspath(OUTPUT_IMAGE_NAME)}")
     except Exception as e:
         print(f"Error saving plot: {e}")
