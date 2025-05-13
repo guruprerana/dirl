@@ -53,7 +53,7 @@ def bucketed_conformal_pred(
     e: float, total_buckets: int, 
     n_samples: int, 
     delta: float=0.95,
-    quantile_eval: str="dkw",
+    quantile_eval: str="normal",
 ) -> VertexBuckets:
     """
     DP implementation of the bucketed conformal prediction algorithm.
@@ -94,7 +94,7 @@ def bucketed_conformal_pred(
                         )
                         scores = sorted(scores)
                         rem_e = (bucket - bucket_pred) * (e / total_buckets)
-                        if quantile_eval == "conformal":
+                        if quantile_eval == "normal":
                             quantile_index = get_conformal_quantile_index(n_samples, rem_e)
                         else:
                             quantile_index = get_dkw_quantile_index(n_samples, rem_e, delta_bar)

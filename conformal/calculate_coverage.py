@@ -12,7 +12,7 @@ def calculate_coverage(
     Calculates empirical coverage of conformal score bounds given by path_score_bounds
     on samples drawn along path from the score_graph
     """
-    assert len(path_score_bounds) == (len(path) - 1)
+    # assert len(path_score_bounds) == (len(path) - 1s)
 
     trajectories_scores = score_graph.sample_full_path_cached(path, n_samples)
     conforming_trajectories = 0

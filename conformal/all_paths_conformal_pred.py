@@ -10,7 +10,7 @@ def all_paths_conformal_pred(
     e: float, 
     n_samples: int, 
     delta: float=0.05,
-    quantile_eval: str="dkw",
+    quantile_eval: str="normal",
 ) -> Tuple[Tuple[int], List[float]]:
     """
     Naive conformal prediction algorithm on the non-confirmity score graph
@@ -66,7 +66,7 @@ def all_paths_conformal_pred(
             score_maxes.append((max(sample_path_scores), sample_path_scores))
 
         score_maxes = sorted(score_maxes, key=lambda t: t[0])
-        if quantile_eval == "conformal":
+        if quantile_eval == "normal":
             quantile_index = get_conformal_quantile_index(n_samples, e)
         else:
             quantile_index = get_dkw_quantile_index(n_samples, e, delta_bar)

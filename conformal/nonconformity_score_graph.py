@@ -50,6 +50,13 @@ class NonConformityScoreGraph:
         cache_string = str(list(path)) + str(target_vertex) + str(n_samples)
         if cache_string in self.sample_cache:
             return self.sample_cache[cache_string]
+        
+        # retrieve from cache if we have already drawn enough samples before
+        cache_start_string = str(list(path)) + str(target_vertex)
+        for key in self.sample_cache.keys():
+            if key.startswith(cache_start_string) and len(self.sample_cache[key][0]) >= n_samples:
+                return self.sample_cache[key][0][:n_samples], self.sample_cache[key][1][:n_samples]
+            
         sample = self.sample(target_vertex, n_samples, path, path_samples)
         self.sample_cache[cache_string] = sample
         self.save_caches(self.cache_save_file)
@@ -82,6 +89,12 @@ class NonConformityScoreGraph:
         cache_string = str(list(path)) + str(n_samples)
         if cache_string in self.samples_full_path_cache:
             return self.samples_full_path_cache[cache_string]
+        
+        cache_start_string = str(list(path))
+        for key in self.samples_full_path_cache.keys():
+            if key.startswith(cache_start_string) and len(self.samples_full_path_cache[key]) >= n_samples:
+                return self.samples_full_path_cache[key]
+            
         sample = self.sample_full_path(path, n_samples)
         self.samples_full_path_cache[cache_string] = sample
         self.save_caches(self.cache_save_file)

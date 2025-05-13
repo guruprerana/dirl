@@ -37,7 +37,7 @@ data_cum_reward["metadata"] = {"es": es, "total_buckets": total_buckets, "scores
 
 for e in es:
     e_data = dict()
-    min_path, min_path_scores = all_paths_conformal_pred(cum_reward_score_graph, e, n_samples, quantile_eval="conformal")
+    min_path, min_path_scores = all_paths_conformal_pred(cum_reward_score_graph, e, n_samples)
     all_paths_coverage = calculate_coverage(
         cum_reward_score_graph, 
         min_path, 
@@ -46,7 +46,7 @@ for e in es:
     )
     for buckets in total_buckets:
         bucket_data = dict()
-        vbs = bucketed_conformal_pred(cum_reward_score_graph, e, buckets, n_samples, quantile_eval="conformal")
+        vbs = bucketed_conformal_pred(cum_reward_score_graph, e, buckets, n_samples)
         min_terminal_vertex_index = None
         min_terminal_vertex_score = np.inf
         for vertex in terminal_vertices:

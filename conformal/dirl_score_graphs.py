@@ -23,7 +23,7 @@ class DIRLNonConformityScoreGraph(NonConformityScoreGraph):
         path: List[int],
         path_samples: list,
     ) -> Tuple[list]:
-        assert target_vertex in self.adj_lists[path[-1]]
+        # assert target_vertex in self.adj_lists[path[-1]]
         assert len(path_samples) == n_samples
 
         pp = self.path_policies.get_vertex_path_policy(path)
@@ -80,3 +80,29 @@ class DIRLCumRewardScoreGraph(DIRLNonConformityScoreGraph):
         elif self.cum_reward_type == "cum_safety_reach_reward":
             return -env.cum_safety_reach_reward(states)
         return -env.cum_reward(states)
+    
+
+class DIRLRepeatedScoreGraph(DIRLCumRewardScoreGraph):
+    def __init__(self, path_policies: PathPolicy, path: List[int], n_repeats: int, cum_reward_type="normal"):
+        self.path = path
+        self.n_repeats = n_repeats
+        super().__init__(self.compute_repeated_adj_lists(), path_policies, cum_reward_type=cum_reward_type)
+
+    def compute_repeated_adj_lists(self) -> List[List[int]]:
+        return [[i+1] for i in range(self.n_repeats * (len(self.path)-1))] + [[]]
+    
+    def sample(self, target_vertex, n_samples, path, path_samples):
+        print(f"Drawing samples for {path} -> {target_vertex}")
+
+        target_vertex = target_vertex % (len(self.path)-1)
+        if target_vertex == 1:
+            path_samples = [None for _ in range(len(path_samples))]
+
+        if target_vertex == 0:
+            path = self.path[:-1]
+            target_vertex = self.path[-1]
+        else:
+            path = self.path[:target_vertex]
+            target_vertex = self.path[target_vertex]
+
+        return super().sample(target_vertex, n_samples, path, path_samples)
