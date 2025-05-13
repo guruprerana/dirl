@@ -41,6 +41,7 @@ for n in n_samples:
             min_terminal_vertex_score = max(vb.path_score_quantiles)
             min_terminal_vertex_index = vertex
 
+    vb = vbs.buckets[(min_terminal_vertex_index, total_buckets)]
     coverage = calculate_coverage(
         score_graph, 
         min_path, 
@@ -72,18 +73,19 @@ for buckets in total_buckets:
     min_terminal_vertex_index = None
     min_terminal_vertex_score = np.inf
     for vertex in terminal_vertices:
-        vb = vbs.buckets[(vertex, total_buckets)]
+        vb = vbs.buckets[(vertex, buckets)]
         if max(vb.path_score_quantiles) < min_terminal_vertex_score:
             min_terminal_vertex_score = max(vb.path_score_quantiles)
             min_terminal_vertex_index = vertex
 
+    vb = vbs.buckets[(min_terminal_vertex_index, buckets)]
     coverage = calculate_coverage(
         score_graph, 
         min_path, 
         vb.path_score_quantiles if min_path == tuple(vb.path) else [max(vb.path_score_quantiles) for _ in range(len(min_path) - 1)], 
         n_samples_coverage
     )
-    data[n] = {
+    data[buckets] = {
         "var-estim": max(vb.path_score_quantiles),
         "coverage": coverage,
     }

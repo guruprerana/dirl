@@ -112,7 +112,7 @@ def sample_size_buckets_experiment():
             vb.path_score_quantiles if min_path == tuple(vb.path) else [max(vb.path_score_quantiles) for _ in range(len(min_path) - 1)], 
             n_samples_coverage
         )
-        data[n] = {
+        data[buckets] = {
             "var-estim": max(vb.path_score_quantiles),
             "coverage": coverage,
         }
@@ -134,4 +134,4 @@ def generate_screenshots():
     img.save("conformal_experiments_data/boxrelay/boxrelay_topview.png")
 
 if __name__ == "__main__":
-    generate_screenshots()
+    sample_size_buckets_experiment()

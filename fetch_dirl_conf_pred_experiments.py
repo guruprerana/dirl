@@ -55,7 +55,7 @@ for e in es:
                 min_terminal_vertex_score = max(vb.path_score_quantiles)
                 min_terminal_vertex_index = vertex
 
-        vb = vbs.buckets[(vertex, buckets)]
+        vb = vbs.buckets[(min_terminal_vertex_index, buckets)]
 
         bucket_data["bucketed"] = {"path": vb.path, 
                                    "path_buckets": vb.path_buckets, 
@@ -64,7 +64,9 @@ for e in es:
         bucket_data["all-paths"] = {"path": min_path, "min_path_scores": min_path_scores, "max_min_path_scores": max(min_path_scores)}
 
         bucket_data["bucketed-coverage"] = calculate_coverage(
-            cum_reward_score_graph, vb.path, vb.path_score_quantiles, n_samples_coverage
+            cum_reward_score_graph, min_path, 
+            vb.path_score_quantiles if min_path == tuple(vb.path) else [max(vb.path_score_quantiles) for _ in range(len(min_path) - 1)], 
+            n_samples_coverage
         )
         bucket_data["all-paths-coverage"] = all_paths_coverage
         e_data[buckets] = bucket_data

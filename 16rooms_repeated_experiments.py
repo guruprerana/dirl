@@ -18,14 +18,17 @@ with open("conformal_experiments_data/16rooms-dirl-policies/adj_list.pkl", "rb")
 with open("conformal_experiments_data/16rooms-dirl-policies/terminal_vertices.pkl", "rb") as f:
     terminal_vertices = pickle.load(f)
 
+with open("conformal_experiments_data/16rooms-repeated/16rooms-spec13-cum-rew-scoregraph.pkl", "rb") as f:
+    cum_reward_score_graph = pickle.load(f)
+
 path = [0, 1, 3, 4, 6, 8, 9, 10, 12]
 full_repeated_path = [v for v in range(5*(len(path) - 1))]
 full_repeated_path.append(full_repeated_path[-1] + 1)
-cum_reward_score_graph = DIRLRepeatedScoreGraph(path_policies, path, 5)
+# cum_reward_score_graph = DIRLRepeatedScoreGraph(path_policies, path, 5)
 n_samples = 10000
 n_samples_coverage = 10000
 e = 0.1
-total_buckets = [100, 200, 300, 400]
+total_buckets = [25, 50, 75, 100, 125, 150, 175, 200]
 
 data = dict()
 for buckets in total_buckets:
@@ -65,7 +68,7 @@ for i in range(1, 6):
 json_data = json.dumps(data, indent=2)
 
 # Store the JSON string in a file
-with open("conformal_experiments_data/16rooms-repeated-data.json", "w") as json_file:
+with open("conformal_experiments_data/16rooms-repeated-data-additional.json", "w") as json_file:
     json_file.write(json_data)
 
 with open("conformal_experiments_data/16rooms-repeated/16rooms-spec13-cum-rew-scoregraph.pkl", "wb") as f:

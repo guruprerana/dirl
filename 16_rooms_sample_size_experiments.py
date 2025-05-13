@@ -57,7 +57,7 @@ n_samples_coverage = 10000
 e = 0.1
 total_buckets = [5, 10, 20, 30, 40, 50, 60, 70, 100]
 
-min_path, min_path_scores = all_paths_conformal_pred(rooms16_score_graph, e, 10000)
+# min_path, min_path_scores = all_paths_conformal_pred(rooms16_score_graph, e, 10000)
 
 data = {}
 for buckets in total_buckets:
@@ -69,7 +69,7 @@ for buckets in total_buckets:
         vb.path_score_quantiles if min_path == tuple(vb.path) else [max(vb.path_score_quantiles) for _ in range(len(min_path) - 1)], 
         n_samples_coverage
     )
-    data[n] = {
+    data[buckets] = {
         "var-estim": max(vb.path_score_quantiles),
         "coverage": coverage,
     }
