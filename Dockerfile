@@ -1,4 +1,4 @@
-# Start with NVIDIA's latest CUDA base image
+# Adjust CUDA image depending on your machine
 FROM nvidia/cuda:12.2.2-cudnn8-runtime-ubuntu20.04
 
 # Avoid prompts from apt
@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y \
     && apt-get update && apt-get install -y \
     python3.9 \
     python3.9-distutils \
-    # python3-pip \
+    python3.9-dev \
     && rm -rf /var/lib/apt/lists/*
 
 RUN curl -sSL https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python3.9 get-pip.py
@@ -28,7 +28,19 @@ RUN apt-get update && apt-get install -y \
 # Set the working directory
 WORKDIR /app
 
-# Copy the Python script to the container
-COPY requirements_gymnasium.txt requirements_gymnasium.txt
+RUN apt-get update && apt-get install -y \
+    wget unzip \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir -r requirements_gymnasium.txt
+RUN wget https://www.roboti.us/download/mujoco200_linux.zip && unzip mujoco200_linux.zip && \
+        mkdir .mujoco && \
+        mv mujoco200_linux .mujoco/mujoco200
+RUN wget https://www.roboti.us/file/mjkey.txt && \
+        mv mjkey.txt .mujoco/mujoco200/bin
+
+ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/app/.mujoco/mujoco200/bin"
+
+# Copy the Python script to the container
+COPY requirements.txt requirements.txt
+
+RUN pip install --no-cache-dir -r requirements.txt
